@@ -27,6 +27,8 @@ glm::mat4 mvp;
 
 float angle;
 int face_num;
+int outputIdx = 0; // outputfile 저장 인덱스
+int screenSize = 800;
 
 struct point3
 {
@@ -36,6 +38,8 @@ struct point3
     float y;
     float z;
 };
+
+void saveScreen(int W, int H, int idx);
 
 std::vector<point3> out_vertices;
 std::vector<point3> out_normals;
@@ -47,14 +51,14 @@ std::vector< glm::vec3 > out_normals;
 */
 
 void timer(int value) {
-    angle += glm::radians(5.0f);
+    angle += glm::radians(20.0f);
     glutPostRedisplay();
     glutTimerFunc(20, timer, 0);
-}
-
-float rand_FloatRange(float a, float b)
-{
-    return ((b - a) * ((float)rand() / RAND_MAX)) + a;
+    if (outputIdx!=18)
+    {
+        saveScreen(screenSize, screenSize, outputIdx);
+        ++outputIdx;
+    }
 }
 
 void transform() {
@@ -381,7 +385,7 @@ void mydisplay() {
 int main(int argc, char** argv)
 {
     glutInit(&argc, argv);
-    glutInitWindowSize(800, 800);
+    glutInitWindowSize(screenSize, screenSize);
     glutInitWindowPosition(300, 150);
     glutCreateWindow("HELPME");
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
@@ -394,4 +398,45 @@ int main(int argc, char** argv)
         init();
         glutMainLoop();
     }
+}
+
+// 화면 캡쳐해 bmp로 이미지 저장
+void saveScreen(int W, int H, int idx)
+{
+    char * pixel_data;
+    pixel_data = (char * )malloc(sizeof(char) * W * H * 3) ;
+
+    BITMAPFILEHEADER bf; // 비트맵 파일 헤더
+    BITMAPINFOHEADER bi; // 비트맵 정보 헤더
+
+    glReadPixels(0, 0, W, H, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixel_data);
+
+    char buff[256];
+    //const char* filename = "output.bmp";
+    char filename[100];
+    sprintf(filename, "output_%d.bmp", idx);
+
+    FILE* out = fopen(filename, "wb");
+
+    char* data = pixel_data;
+
+    memset(&bf, 0, sizeof(bf));
+    memset(&bi, 0, sizeof(bi));
+
+    bf.bfType = 'MB'; // 비트맵 파일 확장자를 위하여
+    bf.bfSize = sizeof(bf) + sizeof(bi) + W * H * 3;
+    bf.bfOffBits = sizeof(bf) + sizeof(bi);
+    bi.biSize = sizeof(bi);
+    bi.biWidth = W;
+    bi.biHeight = H;
+    bi.biPlanes = 1; // 사용하는 색상판의 수 (항상 1)
+    bi.biBitCount = 24; // 픽셀 하나를 표현하는 비트 수
+    bi.biSizeImage = W * H * 3;
+
+    fwrite(&bf, sizeof(bf), 1, out);
+    fwrite(&bi, sizeof(bi), 1, out);
+    fwrite(data, sizeof(unsigned char), H * W * 3, out);
+
+    fclose(out);
+    free(pixel_data);
 }
