@@ -39,7 +39,12 @@ struct point3
     float z;
 };
 
+point3 boundingCent; // 만약 잘 안되면 double로 바꿔볼 것
+double boundMaxDist;
+
+bool loadObj(const char* objName);
 void saveScreen(int W, int H, int idx);
+double boundingBox(point3 & boxCent);
 
 std::vector<point3> out_vertices;
 std::vector<point3> out_normals;
@@ -54,11 +59,11 @@ void timer(int value) {
     angle += glm::radians(20.0f);
     glutPostRedisplay();
     glutTimerFunc(20, timer, 0);
-    if (outputIdx!=18)
+    if (outputIdx!=0 && outputIdx < 19)
     {
         saveScreen(screenSize, screenSize, outputIdx);
-        ++outputIdx;
     }
+    ++outputIdx;
 }
 
 void transform() {
@@ -73,109 +78,6 @@ void transform() {
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 }
 
-bool loadObj(const char * objName)
-{
-    FILE* fp;
-    fp = fopen(objName, "r");
-
-    if (fp == NULL) {
-        printf("Impossible to open the file !\n");
-        return false;
-    }
-
-    std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
-    /*
-    std::vector< glm::vec3 > temp_vertices;
-    std::vector< glm::vec2 > temp_uvs;
-    std::vector< glm::vec3 > temp_normals;   
-    */
-
-    std::vector<point3> temp_vertices;
-    std::vector<point3> temp_normals;
-
-    while (1)
-    {
-        char lineHeader[128];
-
-        int res = fscanf(fp, "%s", lineHeader);
-        if (res == EOF)
-            break;
-
-        // 첫 단어가 v인 경우, vertex를 읽는다
-        if (strcmp(lineHeader, "v") == 0)
-        {
-            point3 vertex;
-            fscanf(fp, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
-            temp_vertices.push_back(vertex);
-        }
-
-        // 첫 단어가 vt라면 uv를 읽는다 
-        /*
-         else if (strcmp(lineHeader, "vt") == 0)
-        {
-            glm::vec2 uv;
-            fscanf(fp, "%f %f\n", &uv.x, &uv.y);
-            temp_uvs.push_back(uv);
-        }       
-        */
-
-        // 첫 단어가 vn이라면, normal을 읽는다
-        else if (strcmp(lineHeader, "vn") == 0)
-        {
-            point3 normal;
-            fscanf(fp, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
-            temp_normals.push_back(normal);
-        }
-
-        // 첫 단어가 f라면, fragment를 읽는다
-        else if (strcmp(lineHeader, "f") == 0)
-        {
-            std::string vertex1, vertex2, vertex3;
-            unsigned int vertexIndex[3], normalIndex[3];
-            int matches = fscanf(fp, "%d//%d %d//%d %d//%d\n", &vertexIndex[0], &normalIndex[0], &vertexIndex[1], &normalIndex[1], &vertexIndex[2], &normalIndex[2]);
-
-            ++face_num;
-
-            if (matches != 6)
-            {
-                printf("File can't be read by our simple parser : ( Try exporting with other options\n");
-                return false;
-            }
-
-            vertexIndices.push_back(vertexIndex[0]);
-            vertexIndices.push_back(vertexIndex[1]);
-            vertexIndices.push_back(vertexIndex[2]);
-
-            normalIndices.push_back(normalIndex[0]);
-            normalIndices.push_back(normalIndex[1]);
-            normalIndices.push_back(normalIndex[2]);
-        }
-
-        // 첫 단어가 l일 때
-
-        //
-    }
-
-    // 인덱싱 과정
-
-    // 각 삼각형의 꼭짓점을 모두 순회
-    for (int i = 0; i < vertexIndices.size(); i++)
-    {
-        unsigned int vertexIdx = vertexIndices[i];
-        unsigned int normalIdx = normalIndices[i];
-        // obj는 1부터 시작하지만, C++의 index는 0부터 시작하기 때문에
-        point3 vertex = temp_vertices[vertexIdx - 1];
-        point3 normal = temp_normals[normalIdx - 1];
-
-        out_vertices.push_back(vertex);
-        out_normals.push_back(normal);
-    }
-
-    fclose(fp);
-    return true;
-}
-
-
 void init()
 {
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -187,6 +89,10 @@ void init()
     const char* objName = "model_normalized.obj";
     //const char* objName = "testCube.obj";
     bool res = loadObj(objName);
+
+    // Bounding Box
+    boundMaxDist = boundingBox(boundingCent);
+
    
     glGenBuffers(1, &VertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
@@ -207,7 +113,8 @@ void init()
 
     //programID = LoadShaders("simple.vshader", "simple.fshader");
     //programID = LoadShaders("plusNormal.vshader", "plusNormal.fshader");
-    programID = LoadShaders("deformed_2.vertexshader", "deformed_2.fragmentshader");
+    //programID = LoadShaders("deformed_2.vertexshader", "deformed_2.fragmentshader");
+    programID = LoadShaders("deformed_3.vertexshader", "deformed_3.fragmentshader");
     glUseProgram(programID);
 
     glEnable(GL_DEPTH_TEST);
@@ -224,9 +131,20 @@ void myreshape(int w, int h)
     Projection = glm::perspective(glm::radians(45.0f),
         (float)w / (float)h, 0.1f, 100.0f);
 
+    /*
+    double tempX = -boundingCent.x;
+    double tempY = 1 - boundingCent.y;
+    double tempZ = -1 -boundingCent.z;
+    */
+
+    double tempX = (-boundingCent.x) / boundMaxDist;
+    double tempY = (1 - boundingCent.y) / boundMaxDist;
+    double tempZ = (-1 -boundingCent.z) / boundMaxDist;
+
     View = glm::lookAt(
         //glm::vec3(3, 4, 3), // Camera is at (3,4,3), in World Space
-        glm::vec3(0, 1, -1), // 접시용 카메라 위치
+        //glm::vec3(0, 1, -1); // 접시 최적 좌표
+        glm::vec3(tempX, tempY, tempZ),
         glm::vec3(0, 0, 0), // and looks at the origin
         glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
     );
@@ -398,6 +316,171 @@ int main(int argc, char** argv)
         init();
         glutMainLoop();
     }
+}
+
+bool loadObj(const char* objName)
+{
+    FILE* fp;
+    fp = fopen(objName, "r");
+
+    if (fp == NULL) {
+        printf("Impossible to open the file !\n");
+        return false;
+    }
+
+    std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
+
+    std::vector<point3> temp_vertices;
+    std::vector<point3> temp_normals;
+
+    while (1)
+    {
+        char lineHeader[128];
+
+        int res = fscanf(fp, "%s", lineHeader);
+        if (res == EOF)
+            break;
+
+        // 첫 단어가 v인 경우, vertex를 읽는다
+        if (strcmp(lineHeader, "v") == 0)
+        {
+            point3 vertex;
+            fscanf(fp, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
+            temp_vertices.push_back(vertex);
+        }
+
+        // 첫 단어가 vt라면 uv를 읽는다 
+        /*
+         else if (strcmp(lineHeader, "vt") == 0)
+        {
+            glm::vec2 uv;
+            fscanf(fp, "%f %f\n", &uv.x, &uv.y);
+            temp_uvs.push_back(uv);
+        }
+        */
+
+        // 첫 단어가 vn이라면, normal을 읽는다
+        else if (strcmp(lineHeader, "vn") == 0)
+        {
+            point3 normal;
+            fscanf(fp, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
+            temp_normals.push_back(normal);
+        }
+
+        // 첫 단어가 f라면, fragment를 읽는다
+        else if (strcmp(lineHeader, "f") == 0)
+        {
+            std::string vertex1, vertex2, vertex3;
+            unsigned int vertexIndex[3], normalIndex[3];
+            int matches = fscanf(fp, "%d//%d %d//%d %d//%d\n", &vertexIndex[0], &normalIndex[0], &vertexIndex[1], &normalIndex[1], &vertexIndex[2], &normalIndex[2]);
+
+            ++face_num;
+
+            if (matches != 6)
+            {
+                printf("File can't be read by our simple parser : ( Try exporting with other options\n");
+                return false;
+            }
+
+            vertexIndices.push_back(vertexIndex[0]);
+            vertexIndices.push_back(vertexIndex[1]);
+            vertexIndices.push_back(vertexIndex[2]);
+
+            normalIndices.push_back(normalIndex[0]);
+            normalIndices.push_back(normalIndex[1]);
+            normalIndices.push_back(normalIndex[2]);
+        }
+
+        // 첫 단어가 l일 때
+
+        //
+    }
+
+    // 인덱싱 과정
+
+    // 각 삼각형의 꼭짓점을 모두 순회
+    for (int i = 0; i < vertexIndices.size(); i++)
+    {
+        unsigned int vertexIdx = vertexIndices[i];
+        unsigned int normalIdx = normalIndices[i];
+        // obj는 1부터 시작하지만, C++의 index는 0부터 시작하기 때문에
+        point3 vertex = temp_vertices[vertexIdx - 1];
+        point3 normal = temp_normals[normalIdx - 1];
+
+        out_vertices.push_back(vertex);
+        out_normals.push_back(normal);
+    }
+
+    fclose(fp);
+    return true;
+}
+
+double getDist(point3 p1, point3 p2)
+{
+    float xDist = pow(p1.x - p2.x, 2);
+    float yDist = pow(p1.y - p2.y, 2);
+    float zDist = pow(p1.z - p2.z, 2);
+
+    return sqrt(xDist + yDist + zDist);
+}
+
+double boundingBox(point3 & boxCent)
+{
+    point3 maxCoordX = point3(-9999, -9999, -9999);
+    point3 minCoordX = point3(9999,9999,9999);    
+    
+    point3 maxCoordY = point3(-9999, -9999, -9999);
+    point3 minCoordY = point3(9999, 9999, 9999);
+
+    point3 maxCoordZ = point3(-9999, -9999, -9999);
+    point3 minCoordZ = point3(9999, 9999, 9999);
+
+    // 바운딩 박스의 8개 좌표들 구하기
+    for (int i = 0; i < out_vertices.size(); i++)
+    {
+        point3 temp = out_vertices[i];
+
+        if (maxCoordX.x < temp.x)
+            maxCoordX = temp;
+
+        if (minCoordX.x > temp.x)
+            minCoordX = temp;
+
+        if (maxCoordY.y < temp.y)
+            maxCoordY = temp;
+
+        if (minCoordY.y > temp.y)
+            minCoordY = temp;
+
+        if (maxCoordZ.z < temp.z)
+            maxCoordZ = temp;
+
+        if (maxCoordZ.z > temp.z)
+            minCoordZ = temp;
+    }
+
+    // 바운딩 박스의 중심의 좌표 구하기
+    boxCent.x = (maxCoordX.x + minCoordX.x) / 2.f;
+    boxCent.y = (maxCoordY.y + minCoordY.y) / 2.f;
+    boxCent.z = (maxCoordZ.z + minCoordZ.z) / 2.f;
+
+    // 바운딩 박스의 대각선 길이
+    // maxCoordX를 기준으로 잡을 시, 절대 minCoordX와는 최대거리가 성립하지 않는다
+    double maxDist = getDist(maxCoordX, maxCoordY);
+    double cmpDist = getDist(maxCoordX, minCoordY);
+
+    if (maxDist < cmpDist)
+        maxDist = cmpDist;
+
+    cmpDist = getDist(maxCoordX, maxCoordZ);
+    if (maxDist < cmpDist)
+        maxDist = cmpDist;
+
+    cmpDist = getDist(maxCoordX, minCoordZ);
+    if (maxDist < cmpDist)
+        maxDist = cmpDist;
+
+    return maxDist;
 }
 
 // 화면 캡쳐해 bmp로 이미지 저장
