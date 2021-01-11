@@ -142,7 +142,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="NormalLoader.cpp" />
+    <ClCompile Include="AlbedoLoad.cpp" />
+    <ClCompile Include="NormalLoad.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AlbedoLoader.h" />
+    <ClInclude Include="common.h" />
+    <ClInclude Include="NormalLoader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

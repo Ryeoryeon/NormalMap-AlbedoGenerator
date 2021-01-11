@@ -1,17 +1,9 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define STB_IMAGE_IMPLEMENTATION
 
-#include <GL/glew.h>
-#include <GL/glut.h> // or <GL/freeglut.h>
-#include <glm/gtc/matrix_transform.hpp> // 추가!
-
-#include <vector>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <cstdlib>
-#include <ctime>
-#include <iostream>
+#include "common.h"
+#include "NormalLoader.h"
+#include "AlbedoLoader.h"
 
 GLuint programID;
 GLuint VertexBufferID;
@@ -29,24 +21,16 @@ float angle;
 int face_num;
 int outputIdx = 0; // outputfile 저장 인덱스
 int screenSize = 800;
-
-struct point3
-{
-    point3(float a, float b, float c) : x(a), y(b), z(c) {};
-    point3() {}; // 기본 생성자 추가
-    float x;
-    float y;
-    float z;
-};
+char RENDERMODE; // 나중에는 N이나 A를 인자로 받아서 자동으로 출력되도록 구현하자
 
 point3 boundingCent; // 만약 잘 안되면 double로 바꿔볼 것
 double boundMaxDist;
 
-bool loadObj(const char* objName);
 void saveScreen(int W, int H, int idx);
 double boundingBox(point3 & boxCent);
 
 std::vector<point3> out_vertices;
+std::vector<point2> out_uvs;
 std::vector<point3> out_normals;
 
 /*
@@ -88,7 +72,15 @@ void init()
 
     const char* objName = "model_normalized.obj";
     //const char* objName = "testCube.obj";
-    bool res = loadObj(objName);
+    std::cout << "press rendermode : N or n == Normal, A or a == Albedo\n";
+    std::cin >> RENDERMODE;
+    if (RENDERMODE == 'N' || RENDERMODE == 'n')
+        bool res = loadNormal(objName, face_num, out_vertices, out_normals);
+
+    else if (RENDERMODE == 'A' || RENDERMODE == 'a')
+        bool res = loadAlbedo(objName, face_num, out_vertices, out_uvs, out_normals);
+
+    //bool res = loadNormal(objName, face_num, out_vertices, out_normals);
 
     // Bounding Box
     boundMaxDist = boundingBox(boundingCent);
@@ -110,10 +102,6 @@ void init()
     glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
     glBufferData(GL_ARRAY_BUFFER, (out_normals.size() * sizeof(point3)), &out_normals[0], GL_STATIC_DRAW);   
 
-
-    //programID = LoadShaders("simple.vshader", "simple.fshader");
-    //programID = LoadShaders("plusNormal.vshader", "plusNormal.fshader");
-    //programID = LoadShaders("deformed_2.vertexshader", "deformed_2.fragmentshader");
     programID = LoadShaders("deformed_3.vertexshader", "deformed_3.fragmentshader");
     glUseProgram(programID);
 
@@ -130,12 +118,6 @@ void myreshape(int w, int h)
 
     Projection = glm::perspective(glm::radians(45.0f),
         (float)w / (float)h, 0.1f, 100.0f);
-
-    /*
-    double tempX = -boundingCent.x;
-    double tempY = 1 - boundingCent.y;
-    double tempZ = -1 -boundingCent.z;
-    */
 
     double tempX = (-boundingCent.x) / boundMaxDist;
     double tempY = (1 - boundingCent.y) / boundMaxDist;
@@ -318,153 +300,6 @@ int main(int argc, char** argv)
     }
 }
 
-bool loadObj(const char* objName)
-{
-    FILE* fp;
-    fp = fopen(objName, "r");
-
-    if (fp == NULL) {
-        printf("Impossible to open the file !\n");
-        return false;
-    }
-
-    std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
-
-    std::vector<point3> temp_vertices;
-    std::vector<point3> temp_normals;
-
-    while (1)
-    {
-        char lineHeader[128];
-
-        int res = fscanf(fp, "%s", lineHeader);
-        if (res == EOF)
-            break;
-
-        // 첫 단어가 v인 경우, vertex를 읽는다
-        if (strcmp(lineHeader, "v") == 0)
-        {
-            point3 vertex;
-            fscanf(fp, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
-            temp_vertices.push_back(vertex);
-        }
-
-        // 첫 단어가 vt라면 uv를 읽는다 
-        /*
-         else if (strcmp(lineHeader, "vt") == 0)
-        {
-            glm::vec2 uv;
-            fscanf(fp, "%f %f\n", &uv.x, &uv.y);
-            temp_uvs.push_back(uv);
-        }
-        */
-
-        // 첫 단어가 vn이라면, normal을 읽는다
-        else if (strcmp(lineHeader, "vn") == 0)
-        {
-            point3 normal;
-            fscanf(fp, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
-            temp_normals.push_back(normal);
-        }
-
-        // 첫 단어가 f라면, face를 읽는다
-        else if (strcmp(lineHeader, "f") == 0)
-        {
-            unsigned int vertexIndex[3], normalIndex[3];
-            std::vector<int> temp_facelist; // face table에 저장된 수들을 임시로 저장하는 벡터
-
-            char str[128];
-            fgets(str, sizeof(str), fp);
-            char* ptr = strtok(str, " //");
-            int ptrSize = 0;
-
-            while (ptr != NULL) // 자른 문자열이 나오지 않을 때까지 출력
-            {
-                temp_facelist.push_back(atoi(ptr));
-                ptr = strtok(NULL, " //");
-                ++ptrSize;
-            }
-
-            // f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 순으로 저장됨
-            if (ptrSize == 9)
-            {
-                int temp1 = 0;
-                int temp2 = 0;
-
-                for (int i = 0; i < 9; i++)
-                {
-                    if (i % 3 == 0)
-                    {
-                        vertexIndex[temp1++] = temp_facelist[i];
-                    }
-
-                    else if (i % 3 == 2)
-                    {
-                        normalIndex[temp2++] = temp_facelist[i];
-                    }
-                }
-            }
-
-            // f v1//vn1 v2//vn2 v3//vn3 순으로 저장됨
-            else if (ptrSize == 6)
-            {
-                int temp1 = 0;
-                int temp2 = 0;
-
-                for (int i = 0; i < 6; i++)
-                {
-                    if (i % 2 == 0)
-                    {
-                        vertexIndex[temp1++] = temp_facelist[i];
-                    }
-
-                    else
-                    {
-                        normalIndex[temp2++] = temp_facelist[i];
-                    }
-                }
-            }
-
-            else
-            {
-                std::cout << "This File can't be read by our simple parser : Try exporting with other options\n";
-                return false;
-            }
-
-            vertexIndices.push_back(vertexIndex[0]);
-            vertexIndices.push_back(vertexIndex[1]);
-            vertexIndices.push_back(vertexIndex[2]);
-
-            normalIndices.push_back(normalIndex[0]);
-            normalIndices.push_back(normalIndex[1]);
-            normalIndices.push_back(normalIndex[2]);
-
-            ++face_num;
-        }
-
-        // 첫 단어가 l일 때
-
-        //
-    }
-
-    // 인덱싱 과정
-
-    // 각 삼각형의 꼭짓점을 모두 순회
-    for (int i = 0; i < vertexIndices.size(); i++)
-    {
-        unsigned int vertexIdx = vertexIndices[i];
-        unsigned int normalIdx = normalIndices[i];
-        // obj는 1부터 시작하지만, C++의 index는 0부터 시작하기 때문에
-        point3 vertex = temp_vertices[vertexIdx - 1];
-        point3 normal = temp_normals[normalIdx - 1];
-
-        out_vertices.push_back(vertex);
-        out_normals.push_back(normal);
-    }
-
-    fclose(fp);
-    return true;
-}
 
 double getDist(point3 p1, point3 p2)
 {
@@ -548,7 +383,7 @@ void saveScreen(int W, int H, int idx)
     char buff[256];
     //const char* filename = "output.bmp";
     char filename[100];
-    sprintf(filename, "output_%d.bmp", idx);
+    sprintf(filename, "%c_output_%d.bmp", RENDERMODE, idx);
 
     FILE* out = fopen(filename, "wb");
 
