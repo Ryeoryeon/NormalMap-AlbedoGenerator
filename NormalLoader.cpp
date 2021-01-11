@@ -367,18 +367,67 @@ bool loadObj(const char* objName)
             temp_normals.push_back(normal);
         }
 
-        // 첫 단어가 f라면, fragment를 읽는다
+        // 첫 단어가 f라면, face를 읽는다
         else if (strcmp(lineHeader, "f") == 0)
         {
-            std::string vertex1, vertex2, vertex3;
             unsigned int vertexIndex[3], normalIndex[3];
-            int matches = fscanf(fp, "%d//%d %d//%d %d//%d\n", &vertexIndex[0], &normalIndex[0], &vertexIndex[1], &normalIndex[1], &vertexIndex[2], &normalIndex[2]);
+            std::vector<int> temp_facelist; // face table에 저장된 수들을 임시로 저장하는 벡터
 
-            ++face_num;
+            char str[128];
+            fgets(str, sizeof(str), fp);
+            char* ptr = strtok(str, " //");
+            int ptrSize = 0;
 
-            if (matches != 6)
+            while (ptr != NULL) // 자른 문자열이 나오지 않을 때까지 출력
             {
-                printf("File can't be read by our simple parser : ( Try exporting with other options\n");
+                temp_facelist.push_back(atoi(ptr));
+                ptr = strtok(NULL, " //");
+                ++ptrSize;
+            }
+
+            // f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 순으로 저장됨
+            if (ptrSize == 9)
+            {
+                int temp1 = 0;
+                int temp2 = 0;
+
+                for (int i = 0; i < 9; i++)
+                {
+                    if (i % 3 == 0)
+                    {
+                        vertexIndex[temp1++] = temp_facelist[i];
+                    }
+
+                    else if (i % 3 == 2)
+                    {
+                        normalIndex[temp2++] = temp_facelist[i];
+                    }
+                }
+            }
+
+            // f v1//vn1 v2//vn2 v3//vn3 순으로 저장됨
+            else if (ptrSize == 6)
+            {
+                int temp1 = 0;
+                int temp2 = 0;
+
+                for (int i = 0; i < 6; i++)
+                {
+                    if (i % 2 == 0)
+                    {
+                        vertexIndex[temp1++] = temp_facelist[i];
+                    }
+
+                    else
+                    {
+                        normalIndex[temp2++] = temp_facelist[i];
+                    }
+                }
+            }
+
+            else
+            {
+                std::cout << "This File can't be read by our simple parser : Try exporting with other options\n";
                 return false;
             }
 
@@ -389,6 +438,8 @@ bool loadObj(const char* objName)
             normalIndices.push_back(normalIndex[0]);
             normalIndices.push_back(normalIndex[1]);
             normalIndices.push_back(normalIndex[2]);
+
+            ++face_num;
         }
 
         // 첫 단어가 l일 때
