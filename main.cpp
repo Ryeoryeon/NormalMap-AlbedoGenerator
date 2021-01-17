@@ -9,6 +9,7 @@ GLuint programID;
 GLuint VertexBufferID;
 GLuint ColorBufferID;
 GLuint NormalBufferID;
+GLuint TransformBufferID;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
 
@@ -90,10 +91,7 @@ void init()
     glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
     glm::mat4 translateMatrix = glm::translate(glm::mat4(), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
     glm::mat4 transformedMatrix = translateMatrix * scalingMatrix; // 순서 유의
- 
-    // out_vertices를 glm::vec3으로 바꿔야 한다
-    glm::vec4 homo_vertices = glm::vec4(out_vertices, 1);
-    glm::vec4 transformedVertices = homo_vertices * transformedMatrix;
+    // 이제 행렬과 vertices를 곱하면 되는데...
    
     glGenBuffers(1, &VertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
@@ -110,6 +108,10 @@ void init()
     glGenBuffers(1, &NormalBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
     glBufferData(GL_ARRAY_BUFFER, (out_normals.size() * sizeof(point3)), &out_normals[0], GL_STATIC_DRAW);   
+
+    glGenBuffers(1, &TransformBufferID);
+    glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4), &transformedMatrix, GL_STATIC_DRAW);
 
     programID = LoadShaders("deformed_3.vertexshader", "deformed_3.fragmentshader");
     glUseProgram(programID);
@@ -274,11 +276,7 @@ void mydisplay() {
         0,                                // stride
         (void*)0                          // array buffer offset
     );  
-
-    // glDrawArrays(GL_TRIANGLES, 0, 36); // 인덱스 전
-
-    // 인덱스 후
-    // glDrawElements(GL_TRIANGLES, face_num, GL_UNSIGNED_INT, 0);
+ 
     glDrawArrays(GL_TRIANGLES, 0, (3*face_num));
 
     // Starting from vertex 0; 3 vertices -> 1 triangle
