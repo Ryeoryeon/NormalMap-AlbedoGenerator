@@ -32,8 +32,7 @@ void main(){
 	float distance = length( LightPosition_worldspace - Position_worldspace );
 	
 	//color = fragmentColor;
-	vec3 normal = Normal * 0.5 + 0.5;
-	vec3 rgb_normal = normalize(normal * 2.0 - 1.0);
-	color = rgb_normal;
+	vec3 normal = normalize(Normal) * 0.5 + 0.5;
+	color = normal;
 
 }

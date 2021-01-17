@@ -28,6 +28,7 @@ double boundMaxDist;
 
 void saveScreen(int W, int H, int idx);
 double boundingBox(point3 & boxCent);
+void verticesWithBounding(); // scaling과 translate
 
 std::vector<point3> out_vertices;
 std::vector<point2> out_uvs;
@@ -64,7 +65,7 @@ void transform() {
 
 void init()
 {
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
 
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
@@ -84,7 +85,15 @@ void init()
 
     // Bounding Box
     boundMaxDist = boundingBox(boundingCent);
+    // verticesWithBounding(); // scaling과 translate 후 vertices 배열로 넘기기
 
+    glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
+    glm::mat4 translateMatrix = glm::translate(glm::mat4(), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
+    glm::mat4 transformedMatrix = translateMatrix * scalingMatrix; // 순서 유의
+ 
+    // out_vertices를 glm::vec3으로 바꿔야 한다
+    glm::vec4 homo_vertices = glm::vec4(out_vertices, 1);
+    glm::vec4 transformedVertices = homo_vertices * transformedMatrix;
    
     glGenBuffers(1, &VertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
@@ -121,12 +130,12 @@ void myreshape(int w, int h)
 
     double tempX = (-boundingCent.x) / boundMaxDist;
     double tempY = (1 - boundingCent.y) / boundMaxDist;
-    double tempZ = (-1 -boundingCent.z) / boundMaxDist;
+    double tempZ = (-2 -boundingCent.z) / boundMaxDist;
 
     View = glm::lookAt(
         //glm::vec3(3, 4, 3), // Camera is at (3,4,3), in World Space
-        //glm::vec3(0, 1, -1); // 접시 최적 좌표
-        glm::vec3(tempX, tempY, tempZ),
+        glm::vec3(0, 1, -1), // 접시 최적 좌표
+        // glm::vec3(tempX, tempY, tempZ),
         glm::vec3(0, 0, 0), // and looks at the origin
         glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
     );
@@ -266,7 +275,6 @@ void mydisplay() {
         (void*)0                          // array buffer offset
     );  
 
-
     // glDrawArrays(GL_TRIANGLES, 0, 36); // 인덱스 전
 
     // 인덱스 후
@@ -367,6 +375,21 @@ double boundingBox(point3 & boxCent)
         maxDist = cmpDist;
 
     return maxDist;
+}
+
+void verticesWithBounding()
+{
+    for (int i = 0; i < out_vertices.size(); ++i)
+    {
+        out_vertices[i].x /= boundMaxDist;
+        out_vertices[i].y /= boundMaxDist;
+        out_vertices[i].z /= boundMaxDist;
+
+        out_vertices[i].x -= boundingCent.x;
+        out_vertices[i].y -= boundingCent.y;
+        out_vertices[i].z -= boundingCent.z;
+
+    }
 }
 
 // 화면 캡쳐해 bmp로 이미지 저장

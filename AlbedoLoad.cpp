@@ -32,6 +32,11 @@ bool loadAlbedo(const char* objName, int& face_num, std::vector<point3>& out_ver
             temp_vertices.push_back(vertex);
         }
 
+        else if (strcmp(lineHeader, "usemtl"))
+        {
+
+        }
+
         // 첫 단어가 vt라면 uv를 읽는다 
         /*
          else if (strcmp(lineHeader, "vt") == 0)
