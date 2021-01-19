@@ -86,12 +86,10 @@ void init()
     // Bounding Box
     boundMaxDist = boundingBox(boundingCent);
 
-    float scalingSize = 0.4f / boundMaxDist;
+    float scalingSize = 0.65f / boundMaxDist;
     glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scalingSize, scalingSize, scalingSize));
     glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
-    glm::mat4 transformedMatrix = translateMatrix * scalingMatrix; // 순서 유의
-    //glm::mat4 transformedMatrix = scalingMatrix;
-    //glm::mat4 transformedMatrix = glm::mat4(1.0f);
+    glm::mat4 transformedMatrix = translateMatrix * scalingMatrix;
 
     // homogeneous coordinate
     std::vector<point3> transformed_vertices;
@@ -168,10 +166,6 @@ void myreshape(int w, int h)
 
     Projection = glm::perspective(glm::radians(45.0f),
         (float)w / (float)h, 0.1f, 100.0f);
-
-    double tempX = (-boundingCent.x) / boundMaxDist;
-    double tempY = (1 - boundingCent.y) / boundMaxDist;
-    double tempZ = (-2 -boundingCent.z) / boundMaxDist;
 
     View = glm::lookAt(
         //glm::vec3(3, 4, 3), // Camera is at (3,4,3), in World Space
@@ -365,6 +359,7 @@ double boundingBox(point3 & boxCent)
 
     point3 maxCoordZ = point3(-9999, -9999, -9999);
     point3 minCoordZ = point3(9999, 9999, 9999);
+    int num = 0;
 
     // 바운딩 박스의 8개 좌표들 구하기
     for (int i = 0; i < out_vertices.size(); i++)
@@ -386,7 +381,7 @@ double boundingBox(point3 & boxCent)
         if (maxCoordZ.z < temp.z)
             maxCoordZ = temp;
 
-        if (maxCoordZ.z > temp.z)
+        if (minCoordZ.z > temp.z)
             minCoordZ = temp;
     }
 
