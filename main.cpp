@@ -29,7 +29,6 @@ double boundMaxDist;
 
 void saveScreen(int W, int H, int idx);
 double boundingBox(point3 & boxCent);
-void verticesWithBounding(); // scaling과 translate
 
 std::vector<point3> out_vertices;
 std::vector<point2> out_uvs;
@@ -86,16 +85,60 @@ void init()
 
     // Bounding Box
     boundMaxDist = boundingBox(boundingCent);
-    // verticesWithBounding(); // scaling과 translate 후 vertices 배열로 넘기기
 
-    glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
-    glm::mat4 translateMatrix = glm::translate(glm::mat4(), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
+    float scalingSize = 0.4f / boundMaxDist;
+    glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scalingSize, scalingSize, scalingSize));
+    glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
     glm::mat4 transformedMatrix = translateMatrix * scalingMatrix; // 순서 유의
-    // 이제 행렬과 vertices를 곱하면 되는데...
+    //glm::mat4 transformedMatrix = scalingMatrix;
+    //glm::mat4 transformedMatrix = glm::mat4(1.0f);
+
+    // homogeneous coordinate
+    std::vector<point3> transformed_vertices;
+    for (int i = 0; i < out_vertices.size(); ++i)
+    {
+        point4 temp_homo = point4(out_vertices[i].x, out_vertices[i].y, out_vertices[i].z); // (x,y.z.1 변환)
+        float temp_output_homo[4] = { 0, };
+
+        for (int j = 0; j < 3; ++j)
+        {
+            // 주의!
+            // glm::mat4형을 디버그해보면 [0]~[3]은 열에 해당하는 정보를 담고 있었다. (x,y,z,w는 행에 해당하는 정보)
+            if (j == 0)
+            {
+                temp_output_homo[j] += transformedMatrix[0].x * temp_homo.x;
+                temp_output_homo[j] += transformedMatrix[1].x * temp_homo.y;
+                temp_output_homo[j] += transformedMatrix[2].x * temp_homo.z;
+                temp_output_homo[j] += transformedMatrix[3].x * temp_homo.w;
+            }
+
+            else if (j == 1)
+            {
+                temp_output_homo[j] += transformedMatrix[0].y * temp_homo.x;
+                temp_output_homo[j] += transformedMatrix[1].y * temp_homo.y;
+                temp_output_homo[j] += transformedMatrix[2].y * temp_homo.z;
+                temp_output_homo[j] += transformedMatrix[3].y * temp_homo.w;
+            }
+
+            else  // j == 2
+            {
+                temp_output_homo[j] += transformedMatrix[0].z * temp_homo.x;
+                temp_output_homo[j] += transformedMatrix[1].z * temp_homo.y;
+                temp_output_homo[j] += transformedMatrix[2].z * temp_homo.z;
+                temp_output_homo[j] += transformedMatrix[3].z * temp_homo.w;
+            }          
+        }
+
+        point3 output_homo = point3(temp_output_homo[0], temp_output_homo[1], temp_output_homo[2]);
+        transformed_vertices.push_back(output_homo);
+    }
+
+
    
     glGenBuffers(1, &VertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, (out_vertices.size() * sizeof(point3)), &out_vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, (transformed_vertices.size() * sizeof(point3)), &transformed_vertices[0], GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, (out_vertices.size() * sizeof(point3)), &out_vertices[0], GL_STATIC_DRAW);
 
     int tripleFace = 3 * face_num;
     std::vector<point3> colors;
@@ -108,10 +151,6 @@ void init()
     glGenBuffers(1, &NormalBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
     glBufferData(GL_ARRAY_BUFFER, (out_normals.size() * sizeof(point3)), &out_normals[0], GL_STATIC_DRAW);   
-
-    glGenBuffers(1, &TransformBufferID);
-    glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4), &transformedMatrix, GL_STATIC_DRAW);
 
     programID = LoadShaders("deformed_3.vertexshader", "deformed_3.fragmentshader");
     glUseProgram(programID);
@@ -373,21 +412,6 @@ double boundingBox(point3 & boxCent)
         maxDist = cmpDist;
 
     return maxDist;
-}
-
-void verticesWithBounding()
-{
-    for (int i = 0; i < out_vertices.size(); ++i)
-    {
-        out_vertices[i].x /= boundMaxDist;
-        out_vertices[i].y /= boundMaxDist;
-        out_vertices[i].z /= boundMaxDist;
-
-        out_vertices[i].x -= boundingCent.x;
-        out_vertices[i].y -= boundingCent.y;
-        out_vertices[i].z -= boundingCent.z;
-
-    }
 }
 
 // 화면 캡쳐해 bmp로 이미지 저장
