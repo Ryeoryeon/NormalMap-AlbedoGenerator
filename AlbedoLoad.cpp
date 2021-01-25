@@ -1,7 +1,7 @@
 #include "common.h"
 #include "AlbedoLoader.h"
 
-bool loadAlbedo(const char* objName, int& face_num, std::vector<point3>& out_vertices, std::vector<point2>& out_uvs, std::vector<point3>& out_normals)
+bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::vector<point3>& out_vertices, std::vector<point2>& out_uvs, std::vector<point3>& out_normals)
 {
     FILE* fp;
     fp = fopen(objName, "r");
@@ -32,7 +32,7 @@ bool loadAlbedo(const char* objName, int& face_num, std::vector<point3>& out_ver
             temp_vertices.push_back(vertex);
         }
 
-        else if (strcmp(lineHeader, "usemtl"))
+        if (strcmp(lineHeader, "usemtl") == 0)
         {
 
         }
@@ -150,6 +150,134 @@ bool loadAlbedo(const char* objName, int& face_num, std::vector<point3>& out_ver
         out_normals.push_back(normal);
     }
 
+    // .mtl load
+
+    FILE* fp2;
+    fp2 = fopen(mtlName, "r");
+
+    if (fp2 == NULL) {
+        printf("Impossible to open the file !\n");
+        return false;
+    }
+
+    std::vector<MaterialData> mtlData;
+    bool first = true; // 첫번째 newmtl인가?
+    MaterialData temp;
+
+    while (1)
+    {
+        char lineHeader[128];
+
+        int res = fscanf(fp2, "%s", lineHeader);
+
+        if (res == EOF)
+        {
+            break;
+        }
+
+        if (strcmp(lineHeader, "newmtl") == 0)
+        {
+            if (first) // 아직 넣을 데이터가 없을 때
+            {
+                first = false;
+                temp = MaterialData(); // temp 초기화
+            }
+
+            else
+            {
+                mtlData.push_back(temp);
+                temp = MaterialData();
+            }
+
+            continue;
+
+        }
+
+        if (strcmp(lineHeader, "Kd") == 0) // diffuse color
+        {
+            fscanf(fp2, "%f %f %f\n", &temp.Kd.x, &temp.Kd.y, &temp.Kd.z);
+        }
+
+        else if (strcmp(lineHeader, "Ka") == 0) // ambient color
+        {
+            fscanf(fp2, "%f %f %f\n", &temp.Ka.x, &temp.Ka.y, &temp.Ka.z);
+        }
+
+        else if (strcmp(lineHeader, "Ks") == 0) // specular color
+        {
+            fscanf(fp2, "%f %f %f\n", &temp.Ks.x, &temp.Ks.y, &temp.Ks.z);
+        }
+
+        else if (strcmp(lineHeader, "d") == 0) // dissolve (transparency)
+        {
+            fscanf(fp2, "%f\n", &temp.d);
+        }
+
+        else if (strcmp(lineHeader, "Ns") == 0) // specular exponent
+        {
+            fscanf(fp2, "%d\n", &temp.Ns);
+        }
+
+        else if (strcmp(lineHeader, "material") == 0) // material name
+        {
+            fscanf(fp2, "%s\n", &temp.name);
+        }
+
+        else // Ke나 illum일 경우엔 건너뛰기
+            continue;
+
+    }
+
     fclose(fp);
+    fclose(fp2);
+
     return true;
 }
+
+/*
+        MaterialData temp; // 임시 저장값
+
+        while (strcmp(lineHeader, "newmtl") != 0 && res != EOF)
+        {
+            int res = fscanf(fp2, "%s", lineHeader);
+
+            if (strcmp(lineHeader, "Kd") == 0) // diffuse color
+            {
+                fscanf(fp2, "%f %f %f\n", &temp.Kd.x, &temp.Kd.y, &temp.Kd.z);
+            }
+
+            else if (strcmp(lineHeader, "Ka") == 0) // ambient color
+            {
+                fscanf(fp2, "%f %f %f\n", &temp.Ka.x, &temp.Ka.y, &temp.Ka.z);
+            }
+
+            else if (strcmp(lineHeader, "Ks") == 0) // specular color
+            {
+                fscanf(fp2, "%f %f %f\n", &temp.Ks.x, &temp.Ks.y, &temp.Ks.z);
+            }
+
+            else if (strcmp(lineHeader, "d") == 0) // dissolve (transparency)
+            {
+                fscanf(fp2, "%f\n", &temp.d);
+            }
+
+            else if (strcmp(lineHeader, "Ns") == 0) // specular exponent
+            {
+                fscanf(fp2, "%d\n", &temp.Ns);
+            }
+
+            else if (strcmp(lineHeader, "material") == 0) // material name
+            {
+                fscanf(fp2, "%s\n", &temp.name);
+            }
+
+            else // Ke나 illum일 경우엔 건너뛰기
+                continue;
+
+        }
+
+        if (temp.d == -1)
+            temp.d = 1;
+
+        mtlData.push_back(temp);
+*/

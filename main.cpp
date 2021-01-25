@@ -72,14 +72,15 @@ void init()
     glBindVertexArray(VertexArrayID);
 
     const char* objName = "model_normalized.obj";
-    //const char* objName = "testCube.obj";
+    const char* mtlName = "model_normalized.mtl";
+
     std::cout << "press rendermode : N or n == Normal, A or a == Albedo\n";
     std::cin >> RENDERMODE;
     if (RENDERMODE == 'N' || RENDERMODE == 'n')
         bool res = loadNormal(objName, face_num, out_vertices, out_normals);
 
     else if (RENDERMODE == 'A' || RENDERMODE == 'a')
-        bool res = loadAlbedo(objName, face_num, out_vertices, out_uvs, out_normals);
+        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, out_uvs, out_normals);
 
     //bool res = loadNormal(objName, face_num, out_vertices, out_normals);
 

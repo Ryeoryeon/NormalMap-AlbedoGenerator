@@ -8,4 +8,17 @@ struct point2
     float z;
 };
 
-bool loadAlbedo(const char* objName, int& face_num, std::vector<point3>& out_vertices, std::vector<point2>& out_uvs, std::vector<point3>& out_normals);
+class MaterialData
+{
+    public:
+        point3 Kd;
+        point3 Ka;
+        point3 Ks;
+        int Ns;
+        float d = 1; // .mtl 중 d가 없는 파일이 존재하므로 그럴 경우를 위해 초기값 지정
+        char* name;
+
+        MaterialData() {};
+};
+
+bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::vector<point3>& out_vertices, std::vector<point2>& out_uvs, std::vector<point3>& out_normals);
