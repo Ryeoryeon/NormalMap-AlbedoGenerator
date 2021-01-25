@@ -218,13 +218,27 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
             fscanf(fp2, "%d\n", &temp.Ns);
         }
 
-        else if (strcmp(lineHeader, "material") == 0) // material name
+        else if (strcmp(lineHeader, "Ke") == 0) // Ke는 건너뛰기
+            continue;
+
+        else if (strcmp(lineHeader, "illum") == 0) // Ke는 건너뛰기
+            continue;
+
+        // 나머지 문자열일 경우, material의 이름을 포함하고 있는지 확인해보자
+        else
         {
-            fscanf(fp2, "%s\n", &temp.name);
+            //char* originalName;
+            char originalName[128];
+            strcpy(originalName, lineHeader); //원본 보존
+            char* nameTemp = strtok(lineHeader, "_");
+
+            if (strcmp(nameTemp, "material") == 0)
+                temp.name = originalName; // 얕은 복사 문제 아직도 존재
+
+            else
+                continue;
         }
 
-        else // Ke나 illum일 경우엔 건너뛰기
-            continue;
 
     }
 
