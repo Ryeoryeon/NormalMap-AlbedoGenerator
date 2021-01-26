@@ -16,7 +16,7 @@ class MaterialData
         point3 Ks;
         int Ns;
         float d = 1; // .mtl 중 d가 없는 파일이 존재하므로 그럴 경우를 위해 초기값 지정
-        char* name;
+        std::string name;
 
         MaterialData() {};
 };

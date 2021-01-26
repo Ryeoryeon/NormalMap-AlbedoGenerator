@@ -233,7 +233,7 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
             char* nameTemp = strtok(lineHeader, "_");
 
             if (strcmp(nameTemp, "material") == 0)
-                temp.name = originalName; // 얕은 복사 문제 아직도 존재
+                temp.name = originalName;
 
             else
                 continue;

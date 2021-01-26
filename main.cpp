@@ -34,6 +34,7 @@ std::vector<point3> out_vertices;
 std::vector<point2> out_uvs;
 std::vector<point3> out_normals;
 
+
 /*
 std::vector< glm::vec3 > out_vertices;
 std::vector< glm::vec2 > out_uvs;
@@ -87,7 +88,7 @@ void init()
     // Bounding Box
     boundMaxDist = boundingBox(boundingCent);
 
-    float scalingSize = 0.65f / boundMaxDist;
+    float scalingSize = 1.8f / boundMaxDist;
     glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scalingSize, scalingSize, scalingSize));
     glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
     glm::mat4 transformedMatrix = translateMatrix * scalingMatrix;
@@ -169,8 +170,8 @@ void myreshape(int w, int h)
         (float)w / (float)h, 0.1f, 100.0f);
 
     View = glm::lookAt(
-        //glm::vec3(3, 4, 3), // Camera is at (3,4,3), in World Space
-        glm::vec3(0, 1, -1), // 접시 최적 좌표
+        glm::vec3(3, 4, 3), // Camera is at (3,4,3), in World Space
+        //glm::vec3(0, 1, -1), // 접시 최적 좌표
         // glm::vec3(tempX, tempY, tempZ),
         glm::vec3(0, 0, 0), // and looks at the origin
         glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
