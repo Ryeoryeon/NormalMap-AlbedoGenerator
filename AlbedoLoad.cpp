@@ -1,13 +1,108 @@
 #include "common.h"
 #include "AlbedoLoader.h"
 
-bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::vector<point3>& out_vertices, std::vector<point2>& out_uvs, std::vector<point3>& out_normals)
+bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::vector<point3>& out_vertices, std::vector<point3>& diffuseColors, std::vector<point3>& ambientColors, std::vector<point3>& specularColors, std::vector<point3>& out_normals)
 {
+    // .mtl load
+    FILE* fp2;
+    fp2 = fopen(mtlName, "r");
+
+    if (fp2 == NULL) {
+        printf("Impossible to open the .mtl file !\n");
+        return false;
+    }
+
+    std::vector<MaterialData> mtlData;
+    bool first = true; // 첫번째 newmtl인가?
+    MaterialData temp;
+
+    while (1)
+    {
+        char lineHeader[128];
+
+        int res = fscanf(fp2, "%s", lineHeader);
+
+        if (res == EOF)
+        {
+            break;
+        }
+
+        if (strcmp(lineHeader, "newmtl") == 0)
+        {
+            if (first) // 아직 넣을 데이터가 없을 때
+            {
+                first = false;
+                temp = MaterialData(); // temp 초기화
+            }
+
+            else
+            {
+                mtlData.push_back(temp);
+                temp = MaterialData();
+            }
+
+            continue;
+
+        }
+
+        //                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               std::string lHeader;
+        if (strcmp(lineHeader, "Kd") == 0) // diffuse color
+        {
+            fscanf(fp2, "%f %f %f\n", &temp.Kd.x, &temp.Kd.y, &temp.Kd.z);
+        }
+
+        else if (strcmp(lineHeader, "Ka") == 0) // ambient color
+        {
+            fscanf(fp2, "%f %f %f\n", &temp.Ka.x, &temp.Ka.y, &temp.Ka.z);
+        }
+
+        else if (strcmp(lineHeader, "Ks") == 0) // specular color
+        {
+            fscanf(fp2, "%f %f %f\n", &temp.Ks.x, &temp.Ks.y, &temp.Ks.z);
+        }
+
+        else if (strcmp(lineHeader, "d") == 0) // dissolve (transparency)
+        {
+            fscanf(fp2, "%f\n", &temp.d);
+        }
+
+        else if (strcmp(lineHeader, "Ns") == 0) // specular exponent
+        {
+            fscanf(fp2, "%d\n", &temp.Ns);
+        }
+
+        else if (strcmp(lineHeader, "Ke") == 0) // Ke는 건너뛰기
+            continue;
+
+        else if (strcmp(lineHeader, "illum") == 0) // Ke는 건너뛰기
+            continue;
+
+        // 나머지 문자열일 경우, material의 이름을 포함하고 있는지 확인해보자
+        else
+        {
+            //char* originalName;
+            char originalName[128];
+            strcpy(originalName, lineHeader); //원본 보존
+            char* nameTemp = strtok(lineHeader, "_");
+
+            if (strcmp(nameTemp, "material") == 0)
+                temp.name = originalName;
+
+            else
+                continue;
+        }
+
+
+    }
+
+    mtlData.push_back(temp);
+
+    // .obj load
     FILE* fp;
     fp = fopen(objName, "r");
 
     if (fp == NULL) {
-        printf("Impossible to open the file !\n");
+        printf("Impossible to open the .obj file !\n");
         return false;
     }
 
@@ -15,14 +110,17 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
 
     std::vector<point3> temp_vertices;
     std::vector<point3> temp_normals;
+    int materialPointer; // 넣어야 할 material
 
     while (1)
     {
         char lineHeader[128];
+        //char originalName[128];
 
         int res = fscanf(fp, "%s", lineHeader);
         if (res == EOF)
             break;
+        //strcpy(originalName, lineHeader); // 원본 보존
 
         // 첫 단어가 v인 경우, vertex를 읽는다
         if (strcmp(lineHeader, "v") == 0)
@@ -34,7 +132,17 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
 
         if (strcmp(lineHeader, "usemtl") == 0)
         {
+            int res = fscanf(fp, "%s", lineHeader); // 공백 한 번 더 읽기
+            // 어떤 material을 부여할지 검사
+            char nameTemp[128];
+            strcpy(nameTemp, lineHeader);
+            std::string compareName = std::string(nameTemp);
 
+            for (int i = 0; i < mtlData.size(); i++)
+            {
+                if (compareName == mtlData[i].name)
+                    materialPointer = i;
+            }
         }
 
         // 첫 단어가 vt라면 uv를 읽는다 
@@ -91,6 +199,10 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                         normalIndex[temp2++] = temp_facelist[i];
                     }
                 }
+
+                diffuseColors.push_back(mtlData[materialPointer].Kd);
+                ambientColors.push_back(mtlData[materialPointer].Ka);
+                specularColors.push_back(mtlData[materialPointer].Ks);
             }
 
             // f v1//vn1 v2//vn2 v3//vn3 순으로 저장됨
@@ -111,6 +223,10 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                         normalIndex[temp2++] = temp_facelist[i];
                     }
                 }
+
+                diffuseColors.push_back(mtlData[materialPointer].Kd);
+                ambientColors.push_back(mtlData[materialPointer].Ka);
+                specularColors.push_back(mtlData[materialPointer].Ks);
             }
 
             else
@@ -148,98 +264,6 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
 
         out_vertices.push_back(vertex);
         out_normals.push_back(normal);
-    }
-
-    // .mtl load
-
-    FILE* fp2;
-    fp2 = fopen(mtlName, "r");
-
-    if (fp2 == NULL) {
-        printf("Impossible to open the file !\n");
-        return false;
-    }
-
-    std::vector<MaterialData> mtlData;
-    bool first = true; // 첫번째 newmtl인가?
-    MaterialData temp;
-
-    while (1)
-    {
-        char lineHeader[128];
-
-        int res = fscanf(fp2, "%s", lineHeader);
-
-        if (res == EOF)
-        {
-            break;
-        }
-
-        if (strcmp(lineHeader, "newmtl") == 0)
-        {
-            if (first) // 아직 넣을 데이터가 없을 때
-            {
-                first = false;
-                temp = MaterialData(); // temp 초기화
-            }
-
-            else
-            {
-                mtlData.push_back(temp);
-                temp = MaterialData();
-            }
-
-            continue;
-
-        }
-
-        if (strcmp(lineHeader, "Kd") == 0) // diffuse color
-        {
-            fscanf(fp2, "%f %f %f\n", &temp.Kd.x, &temp.Kd.y, &temp.Kd.z);
-        }
-
-        else if (strcmp(lineHeader, "Ka") == 0) // ambient color
-        {
-            fscanf(fp2, "%f %f %f\n", &temp.Ka.x, &temp.Ka.y, &temp.Ka.z);
-        }
-
-        else if (strcmp(lineHeader, "Ks") == 0) // specular color
-        {
-            fscanf(fp2, "%f %f %f\n", &temp.Ks.x, &temp.Ks.y, &temp.Ks.z);
-        }
-
-        else if (strcmp(lineHeader, "d") == 0) // dissolve (transparency)
-        {
-            fscanf(fp2, "%f\n", &temp.d);
-        }
-
-        else if (strcmp(lineHeader, "Ns") == 0) // specular exponent
-        {
-            fscanf(fp2, "%d\n", &temp.Ns);
-        }
-
-        else if (strcmp(lineHeader, "Ke") == 0) // Ke는 건너뛰기
-            continue;
-
-        else if (strcmp(lineHeader, "illum") == 0) // Ke는 건너뛰기
-            continue;
-
-        // 나머지 문자열일 경우, material의 이름을 포함하고 있는지 확인해보자
-        else
-        {
-            //char* originalName;
-            char originalName[128];
-            strcpy(originalName, lineHeader); //원본 보존
-            char* nameTemp = strtok(lineHeader, "_");
-
-            if (strcmp(nameTemp, "material") == 0)
-                temp.name = originalName;
-
-            else
-                continue;
-        }
-
-
     }
 
     fclose(fp);

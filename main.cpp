@@ -8,6 +8,8 @@
 GLuint programID;
 GLuint VertexBufferID;
 GLuint ColorBufferID;
+GLuint ambientColorBufferID;
+GLuint specularColorBufferID;
 GLuint NormalBufferID;
 GLuint TransformBufferID;
 
@@ -33,6 +35,11 @@ double boundingBox(point3 & boxCent);
 std::vector<point3> out_vertices;
 std::vector<point2> out_uvs;
 std::vector<point3> out_normals;
+
+// .mtl파일을 읽어올경우 필요
+std::vector<point3> specularColors;
+std::vector<point3> ambientColors;
+std::vector<point3> diffuseColors;
 
 
 /*
@@ -78,10 +85,16 @@ void init()
     std::cout << "press rendermode : N or n == Normal, A or a == Albedo\n";
     std::cin >> RENDERMODE;
     if (RENDERMODE == 'N' || RENDERMODE == 'n')
+    {
         bool res = loadNormal(objName, face_num, out_vertices, out_normals);
-
+        programID = LoadShaders("Normal.vertexshader", "Normal.fragmentshader");
+    }
+        
     else if (RENDERMODE == 'A' || RENDERMODE == 'a')
-        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, out_uvs, out_normals);
+    {
+        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
+        programID = LoadShaders("Albedo.vertexshader", "Albedo.fragmentshader");
+    }
 
     //bool res = loadNormal(objName, face_num, out_vertices, out_normals);
 
@@ -141,18 +154,47 @@ void init()
     //glBufferData(GL_ARRAY_BUFFER, (out_vertices.size() * sizeof(point3)), &out_vertices[0], GL_STATIC_DRAW);
 
     int tripleFace = 3 * face_num;
-    std::vector<point3> colors;
-    colors.assign(tripleFace, { 0.5, 0.5, 0.5});
+    //std::vector<point3> colors;
+    //colors.assign(tripleFace, { 0.5, 0.5, 0.5});
 
-    glGenBuffers(1, &ColorBufferID);
-    glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
-    glBufferData(GL_ARRAY_BUFFER, (colors.size() * sizeof(point3)), &colors[0], GL_STATIC_DRAW);
+    // Albedo일 경우 colors(diffuse)외에도 specular와 ambient도 추가해주기
+    // 
+    if (RENDERMODE == 'A' || RENDERMODE == 'a')
+    {
+        // diffuse
+        glGenBuffers(1, &ColorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &diffuseColors[0], GL_STATIC_DRAW);
+
+        // 수정하기
+        /*
+         // ambient
+        glGenBuffers(1, &ambientColorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &ambientColors[0], GL_STATIC_DRAW);
+
+        // specular
+        glGenBuffers(1, &specularColorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &specularColors[0], GL_STATIC_DRAW);       
+        */
+    }
+
+    else
+    {
+        std::vector<point3> colors;
+        colors.assign(tripleFace, { 0.5, 0.5, 0.5 });
+
+        glGenBuffers(1, &ColorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glBufferData(GL_ARRAY_BUFFER, (colors.size() * sizeof(point3)), &colors[0], GL_STATIC_DRAW);
+    }
 
     glGenBuffers(1, &NormalBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
     glBufferData(GL_ARRAY_BUFFER, (out_normals.size() * sizeof(point3)), &out_normals[0], GL_STATIC_DRAW);   
 
-    programID = LoadShaders("deformed_3.vertexshader", "deformed_3.fragmentshader");
+    //programID = LoadShaders("Normal.vertexshader", "Normal.fragmentshader");
     glUseProgram(programID);
 
     glEnable(GL_DEPTH_TEST);
@@ -311,7 +353,25 @@ void mydisplay() {
         0,                                // stride
         (void*)0                          // array buffer offset
     );  
- 
+
+    // Albedo일 경우 glEnableVertexAttribArray추가
+    // 수정하기
+    /*
+    if (RENDERMODE == 'A' || RENDERMODE == 'a')
+    {
+        // ambient
+        glEnableVertexAttribArray(3);
+        glBindBuffer(GL_ARRAY_BUFFER, ambientColorBufferID);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+        // specular
+        glEnableVertexAttribArray(4);
+        glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    }   
+    */
+
+
     glDrawArrays(GL_TRIANGLES, 0, (3*face_num));
 
     // Starting from vertex 0; 3 vertices -> 1 triangle
