@@ -200,8 +200,17 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                     }
                 }
 
+                // 점 세개에 대한 color
                 diffuseColors.push_back(mtlData[materialPointer].Kd);
+                diffuseColors.push_back(mtlData[materialPointer].Kd);
+                diffuseColors.push_back(mtlData[materialPointer].Kd);
+
                 ambientColors.push_back(mtlData[materialPointer].Ka);
+                ambientColors.push_back(mtlData[materialPointer].Ka);
+                ambientColors.push_back(mtlData[materialPointer].Ka);
+
+                specularColors.push_back(mtlData[materialPointer].Ks);
+                specularColors.push_back(mtlData[materialPointer].Ks);
                 specularColors.push_back(mtlData[materialPointer].Ks);
             }
 
@@ -224,8 +233,17 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                     }
                 }
 
+                // 점 세 개에 대한 color
                 diffuseColors.push_back(mtlData[materialPointer].Kd);
+                diffuseColors.push_back(mtlData[materialPointer].Kd);
+                diffuseColors.push_back(mtlData[materialPointer].Kd);
+
                 ambientColors.push_back(mtlData[materialPointer].Ka);
+                ambientColors.push_back(mtlData[materialPointer].Ka);
+                ambientColors.push_back(mtlData[materialPointer].Ka);
+
+                specularColors.push_back(mtlData[materialPointer].Ks);
+                specularColors.push_back(mtlData[materialPointer].Ks);
                 specularColors.push_back(mtlData[materialPointer].Ks);
             }
 
