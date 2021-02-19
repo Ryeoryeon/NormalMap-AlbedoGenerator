@@ -82,7 +82,7 @@ void init()
     const char* objName = "model_normalized.obj";
     const char* mtlName = "model_normalized.mtl";
 
-    std::cout << "press rendermode : N or n == Normal, A or a == Albedo\n";
+    std::cout << "press rendermode : N or n == Normal, A or a == Albedo, I or i == Illumination model\n";
     std::cin >> RENDERMODE;
     if (RENDERMODE == 'N' || RENDERMODE == 'n')
     {
@@ -94,6 +94,12 @@ void init()
     {
         bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("Albedo.vertexshader", "Albedo.fragmentshader");
+    }
+
+    else if (RENDERMODE == 'I' || RENDERMODE == 'i')
+    {
+        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
+        programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
     }
 
     //bool res = loadNormal(objName, face_num, out_vertices, out_normals);
@@ -167,17 +173,34 @@ void init()
         glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &diffuseColors[0], GL_STATIC_DRAW);
 
         // 수정하기
-        /*
-         // ambient
+        // ambient
         glGenBuffers(1, &ambientColorBufferID);
-        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, ambientColorBufferID);
         glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &ambientColors[0], GL_STATIC_DRAW);
 
         // specular
         glGenBuffers(1, &specularColorBufferID);
-        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
         glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &specularColors[0], GL_STATIC_DRAW);       
-        */
+    }
+
+    else if (RENDERMODE == 'I' || RENDERMODE == 'i')
+    {
+        // diffuse
+        glGenBuffers(1, &ColorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &diffuseColors[0], GL_STATIC_DRAW);
+
+        // 수정하기
+        // ambient
+        glGenBuffers(1, &ambientColorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, ambientColorBufferID);
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &ambientColors[0], GL_STATIC_DRAW);
+
+        // specular
+        glGenBuffers(1, &specularColorBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &specularColors[0], GL_STATIC_DRAW);
     }
 
     else
@@ -356,7 +379,6 @@ void mydisplay() {
 
     // Albedo일 경우 glEnableVertexAttribArray추가
     // 수정하기
-    /*
     if (RENDERMODE == 'A' || RENDERMODE == 'a')
     {
         // ambient
@@ -369,8 +391,6 @@ void mydisplay() {
         glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
     }   
-    */
-
 
     glDrawArrays(GL_TRIANGLES, 0, (3*face_num));
 

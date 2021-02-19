@@ -23,21 +23,26 @@ uniform vec3 MaterialAmbientColor;
 uniform vec3 MaterialSpecularColor;
 
 void main(){
-	vec3 LightColor = vec3(1,1,1);
-	float LightPower = 5000.0f;
+	vec3 LightColor = vec3(0,1,1);
+	float LightPower = 50.0f;
 	
 	// Material properties
 	vec3 MaterialDiffuseColor = diffuseColor;
 	vec3 MaterialAmbientColor = ambientColor * MaterialDiffuseColor;
 	vec3 MaterialSpecularColor = specularColor;
 
+	vec3 n = normalize(Normal_cameraspace);
+	vec3 l = normalize(LightDirection_cameraspace);
+	vec3 E = normalize(EyeDirection_cameraspace); // 카메라를 바라보는 벡터
+	vec3 R = reflect (-l, n); // 삼각형이 빛을 반사하는 방향
+	
 	// Distance to the light
-	//float distance = length( LightPosition_worldspace - Position_worldspace );
-	//float cosAlpha = clamp( dot( E,R ), 0,1 );
-	//float cosTheta = clamp( dot( n,l ), 0,1 );
+	float distance = length( LightPosition_worldspace - Position_worldspace );
+	float cosAlpha = clamp( dot( E,R ), 0,1 );
+	float cosTheta = clamp( dot( n,l), 0,1 );
 
-	//color = MaterialAmbientColor + MaterialDiffuseColor * cosTheta / (distance*distance) + MaterialSpecularColor * pow(cosAlpha,5) / (distance*distance);
+	color = MaterialAmbientColor + MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) + MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
 	//color = MaterialAmbientColor + MaterialDiffuseColor + MaterialSpecularColor;
-	color = MaterialDiffuseColor;
+	//color = MaterialDiffuseColor;
 
 }
