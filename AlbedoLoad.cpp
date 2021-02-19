@@ -137,11 +137,16 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
             char nameTemp[128];
             strcpy(nameTemp, lineHeader);
             std::string compareName = std::string(nameTemp);
-
+            if (compareName == "material_0_24") {
+                puts("");
+            }
             for (int i = 0; i < mtlData.size(); i++)
             {
                 if (compareName == mtlData[i].name)
+                {
                     materialPointer = i;
+                    break;
+                }
             }
         }
 
@@ -234,6 +239,7 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                 }
 
                 // 점 세 개에 대한 color
+
                 diffuseColors.push_back(mtlData[materialPointer].Kd);
                 diffuseColors.push_back(mtlData[materialPointer].Kd);
                 diffuseColors.push_back(mtlData[materialPointer].Kd);
