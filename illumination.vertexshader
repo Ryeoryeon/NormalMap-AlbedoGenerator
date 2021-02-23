@@ -7,7 +7,6 @@ layout(location = 3) in vec3 vertexColor_ambient;
 layout(location = 4) in vec3 vertexColor_specular;
 
 // Output data ; will be interpolated for each fragment.
-//out vec3 fragmentColor;
 out vec3 diffuseColor;
 out vec3 ambientColor;
 out vec3 specularColor;
