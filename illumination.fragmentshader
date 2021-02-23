@@ -23,9 +23,10 @@ uniform vec3 MaterialAmbientColor;
 uniform vec3 MaterialSpecularColor;
 
 void main(){
-	vec3 LightColor = vec3(0,1,1);
-	float LightPower = 50.0f;
-	
+	vec3 LightColor = vec3(1,1,1);
+	//float LightPower = 3.0f;
+	float LightPower = 300000.0f;
+
 	// Material properties
 	vec3 MaterialDiffuseColor = diffuseColor;
 	vec3 MaterialAmbientColor = ambientColor * MaterialDiffuseColor;
@@ -41,8 +42,9 @@ void main(){
 	float cosAlpha = clamp( dot( E,R ), 0,1 );
 	float cosTheta = clamp( dot( n,l), 0,1 );
 
-	color = MaterialAmbientColor + MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) + MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
-	//color = MaterialAmbientColor + MaterialDiffuseColor + MaterialSpecularColor;
+	color = MaterialDiffuseColor * cosTheta * LightPower * LightColor / (distance * distance);
+
+	//color = MaterialAmbientColor + MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) + MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
 	//color = MaterialDiffuseColor;
 
 }

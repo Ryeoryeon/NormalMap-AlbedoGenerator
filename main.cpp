@@ -11,7 +11,7 @@ GLuint ColorBufferID;
 GLuint ambientColorBufferID;
 GLuint specularColorBufferID;
 GLuint NormalBufferID;
-GLuint TransformBufferID;
+GLuint LightID;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
 
@@ -69,6 +69,19 @@ void transform() {
 
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+    //
+    GLuint ViewMatrixID = glGetUniformLocation(programID, "V");
+    GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
+    glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &View[0][0]);
+    glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);
+    //
+
+    //glm::vec3 lightPos = glm::vec3(200, 250, 80);
+    //glm::vec3 lightPos = glm::vec3(100, 500, 80);
+    glm::vec3 lightPos = glm::vec3(150, 120, 180);
+    //glm::vec3 lightPos = glm::vec3(0, 0, 80);
+    LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
+    glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
 void init()
@@ -172,7 +185,6 @@ void init()
         glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
         glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &diffuseColors[0], GL_STATIC_DRAW);
 
-        // 수정하기
         // ambient
         glGenBuffers(1, &ambientColorBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, ambientColorBufferID);
@@ -191,7 +203,6 @@ void init()
         glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
         glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &diffuseColors[0], GL_STATIC_DRAW);
 
-        // 수정하기
         // ambient
         glGenBuffers(1, &ambientColorBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, ambientColorBufferID);
@@ -242,8 +253,8 @@ void myreshape(int w, int h)
         glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
     );
 
-    transform();
-
+    // transform 내부에서 중복
+    /*
     // Model matrix : an identity matrix (model will be at the origin)
     glm::mat4 Model = glm::mat4(1.0f);
 
@@ -251,7 +262,10 @@ void myreshape(int w, int h)
     glm::mat4 mvp = Projection * View * Model;
 
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);   
+    */
+
+    transform();
 }
 
 
@@ -378,7 +392,6 @@ void mydisplay() {
     );  
 
     // Albedo일 경우 glEnableVertexAttribArray추가
-    // 수정하기
     if (RENDERMODE == 'A' || RENDERMODE == 'a')
     {
         // ambient
