@@ -11,6 +11,7 @@ GLuint ColorBufferID;
 GLuint ambientColorBufferID;
 GLuint specularColorBufferID;
 GLuint NormalBufferID;
+GLuint dissolveBufferID;
 GLuint LightID;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
@@ -40,6 +41,7 @@ std::vector<point3> out_normals;
 std::vector<point3> specularColors;
 std::vector<point3> ambientColors;
 std::vector<point3> diffuseColors;
+std::vector<float> dissolveColors;
 
 
 /*
@@ -105,13 +107,13 @@ void init()
         
     else if (RENDERMODE == 'A' || RENDERMODE == 'a')
     {
-        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
+        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, dissolveColors, out_normals);
         programID = LoadShaders("Albedo.vertexshader", "Albedo.fragmentshader");
     }
 
     else if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
-        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
+        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, dissolveColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
     }
 
@@ -212,6 +214,11 @@ void init()
         glGenBuffers(1, &specularColorBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
         glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &specularColors[0], GL_STATIC_DRAW);
+
+        // dissolve
+        glGenBuffers(1, &dissolveBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, dissolveBufferID);
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(float)), &dissolveColors[0], GL_STATIC_DRAW);
     }
 
     else
@@ -234,6 +241,14 @@ void init()
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glEnable(GL_CULL_FACE);
+
+    if (RENDERMODE == 'I' || RENDERMODE == 'i')
+    {
+        // 투명도 적용을 위한 블렌드함수
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+    }
+
     glCullFace(GL_BACK);
 
 }
@@ -392,6 +407,7 @@ void mydisplay() {
     );  
 
     // Albedo일 경우 glEnableVertexAttribArray추가
+    /*
     if (RENDERMODE == 'A' || RENDERMODE == 'a')
     {
         // ambient
@@ -403,7 +419,27 @@ void mydisplay() {
         glEnableVertexAttribArray(4);
         glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    }   
+    }  
+    */
+
+
+    if (RENDERMODE == 'I' || RENDERMODE == 'i')
+    {
+        // ambient
+        glEnableVertexAttribArray(3);
+        glBindBuffer(GL_ARRAY_BUFFER, ambientColorBufferID);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+        // specular
+        glEnableVertexAttribArray(4);
+        glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+        // dissolve
+        glEnableVertexAttribArray(5);
+        glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
+        glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 0, (void*)0);       
+    }
 
     glDrawArrays(GL_TRIANGLES, 0, (3*face_num));
 

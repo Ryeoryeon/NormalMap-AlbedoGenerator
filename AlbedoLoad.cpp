@@ -1,7 +1,7 @@
 #include "common.h"
 #include "AlbedoLoader.h"
 
-bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::vector<point3>& out_vertices, std::vector<point3>& diffuseColors, std::vector<point3>& ambientColors, std::vector<point3>& specularColors, std::vector<point3>& out_normals)
+bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::vector<point3>& out_vertices, std::vector<point3>& diffuseColors, std::vector<point3>& ambientColors, std::vector<point3>& specularColors, std::vector<float>& dissolveColors, std::vector<point3>& out_normals)
 {
     // .mtl load
     FILE* fp2;
@@ -217,6 +217,10 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                 specularColors.push_back(mtlData[materialPointer].Ks);
                 specularColors.push_back(mtlData[materialPointer].Ks);
                 specularColors.push_back(mtlData[materialPointer].Ks);
+
+                dissolveColors.push_back(mtlData[materialPointer].d);
+                dissolveColors.push_back(mtlData[materialPointer].d);
+                dissolveColors.push_back(mtlData[materialPointer].d);
             }
 
             // f v1//vn1 v2//vn2 v3//vn3 순으로 저장됨
@@ -251,6 +255,10 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                 specularColors.push_back(mtlData[materialPointer].Ks);
                 specularColors.push_back(mtlData[materialPointer].Ks);
                 specularColors.push_back(mtlData[materialPointer].Ks);
+
+                dissolveColors.push_back(mtlData[materialPointer].d);
+                dissolveColors.push_back(mtlData[materialPointer].d);
+                dissolveColors.push_back(mtlData[materialPointer].d);
             }
 
             else

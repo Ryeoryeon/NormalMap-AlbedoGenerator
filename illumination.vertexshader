@@ -5,11 +5,13 @@ layout(location = 1) in vec3 vertexColor_diffuse;
 layout(location = 2) in vec3 vertexNormal_modelspace;
 layout(location = 3) in vec3 vertexColor_ambient;
 layout(location = 4) in vec3 vertexColor_specular;
+layout(location = 5) in float vertexColor_dissolve[];
 
 // Output data ; will be interpolated for each fragment.
 out vec3 diffuseColor;
 out vec3 ambientColor;
 out vec3 specularColor;
+out float dissolveColor[];
 
 out vec3 Position_worldspace;
 out vec3 Normal_cameraspace;
@@ -28,6 +30,7 @@ void main(){
 	diffuseColor = vertexColor_diffuse;
 	ambientColor = vertexColor_ambient;
 	specularColor = vertexColor_specular;
+	dissolveColor = vertexColor_dissolve;
 
 	// Output position of the vertex, in clip space : MVP * position
 	gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
