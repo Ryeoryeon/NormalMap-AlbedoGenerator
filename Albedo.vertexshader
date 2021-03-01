@@ -1,16 +1,16 @@
 #version 330 core
 
 layout(location = 0) in vec3 vertexPosition_modelspace;
-layout(location = 1) in vec3 vertexColor_diffuse;
+layout(location = 1) in vec4 vertexColor_diffuse;
 layout(location = 2) in vec3 vertexNormal_modelspace;
-layout(location = 3) in vec3 vertexColor_ambient;
-layout(location = 4) in vec3 vertexColor_specular;
+//layout(location = 3) in vec3 vertexColor_ambient;
+//layout(location = 4) in vec3 vertexColor_specular;
 
 // Output data ; will be interpolated for each fragment.
 //out vec3 fragmentColor;
 out vec3 diffuseColor;
-out vec3 ambientColor;
-out vec3 specularColor;
+//out vec3 ambientColor;
+//out vec3 specularColor;
 
 out vec3 Position_worldspace;
 out vec3 Normal_cameraspace;
@@ -26,9 +26,9 @@ uniform vec3 LightPosition_worldspace;
 
 void main(){
 
-	diffuseColor = vertexColor_diffuse;
-	ambientColor = vertexColor_ambient;
-	specularColor = vertexColor_specular;
+	diffuseColor = vec3(vertexColor_diffuse);
+	//ambientColor = vertexColor_ambient;
+	//specularColor = vertexColor_specular;
 
 	// Output position of the vertex, in clip space : MVP * position
 	gl_Position =  MVP * vec4(vertexPosition_modelspace,1);

@@ -1,7 +1,7 @@
 #include "common.h"
 #include "AlbedoLoader.h"
 
-bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::vector<point3>& out_vertices, std::vector<point3>& diffuseColors, std::vector<point3>& ambientColors, std::vector<point3>& specularColors, std::vector<float>& dissolveColors, std::vector<point3>& out_normals)
+bool loadAlbedo(const char RENDERMODE, const char* objName, const char* mtlName, int& face_num, std::vector<point3>& out_vertices, std::vector<point4>& diffuseColors, std::vector<point3>& ambientColors, std::vector<point3>& specularColors, std::vector<point3>& out_normals)
 {
     // .mtl load
     FILE* fp2;
@@ -186,6 +186,14 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                 ++ptrSize;
             }
 
+            // RENDERMODE에 따라 투명도는 다르게 적용되어야 한다
+            // Albedo의 경우 투명도가 적용되지 않도록
+            if (RENDERMODE == 'i' || RENDERMODE == 'I')
+                mtlData[materialPointer].Kd.w = mtlData[materialPointer].d;
+
+            else
+                mtlData[materialPointer].Kd.w = 1;
+
             // f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 순으로 저장됨
             if (ptrSize == 9)
             {
@@ -218,9 +226,6 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                 specularColors.push_back(mtlData[materialPointer].Ks);
                 specularColors.push_back(mtlData[materialPointer].Ks);
 
-                dissolveColors.push_back(mtlData[materialPointer].d);
-                dissolveColors.push_back(mtlData[materialPointer].d);
-                dissolveColors.push_back(mtlData[materialPointer].d);
             }
 
             // f v1//vn1 v2//vn2 v3//vn3 순으로 저장됨
@@ -255,10 +260,6 @@ bool loadAlbedo(const char* objName, const char* mtlName, int& face_num, std::ve
                 specularColors.push_back(mtlData[materialPointer].Ks);
                 specularColors.push_back(mtlData[materialPointer].Ks);
                 specularColors.push_back(mtlData[materialPointer].Ks);
-
-                dissolveColors.push_back(mtlData[materialPointer].d);
-                dissolveColors.push_back(mtlData[materialPointer].d);
-                dissolveColors.push_back(mtlData[materialPointer].d);
             }
 
             else

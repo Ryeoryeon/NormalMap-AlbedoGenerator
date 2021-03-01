@@ -11,7 +11,7 @@ GLuint ColorBufferID;
 GLuint ambientColorBufferID;
 GLuint specularColorBufferID;
 GLuint NormalBufferID;
-GLuint dissolveBufferID;
+//GLuint dissolveBufferID;
 GLuint LightID;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
@@ -40,8 +40,7 @@ std::vector<point3> out_normals;
 // .mtl파일을 읽어올경우 필요
 std::vector<point3> specularColors;
 std::vector<point3> ambientColors;
-std::vector<point3> diffuseColors;
-std::vector<float> dissolveColors;
+std::vector<point4> diffuseColors;
 
 
 /*
@@ -107,13 +106,13 @@ void init()
         
     else if (RENDERMODE == 'A' || RENDERMODE == 'a')
     {
-        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, dissolveColors, out_normals);
+        bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("Albedo.vertexshader", "Albedo.fragmentshader");
     }
 
     else if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
-        bool res = loadAlbedo(objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, dissolveColors, out_normals);
+        bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
     }
 
@@ -185,7 +184,7 @@ void init()
         // diffuse
         glGenBuffers(1, &ColorBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
-        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &diffuseColors[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point4)), &diffuseColors[0], GL_STATIC_DRAW);
 
         // ambient
         glGenBuffers(1, &ambientColorBufferID);
@@ -203,7 +202,7 @@ void init()
         // diffuse
         glGenBuffers(1, &ColorBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
-        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &diffuseColors[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point4)), &diffuseColors[0], GL_STATIC_DRAW);
 
         // ambient
         glGenBuffers(1, &ambientColorBufferID);
@@ -216,9 +215,11 @@ void init()
         glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &specularColors[0], GL_STATIC_DRAW);
 
         // dissolve
+        /*
         glGenBuffers(1, &dissolveBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, dissolveBufferID);
         glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(float)), &dissolveColors[0], GL_STATIC_DRAW);
+        */
     }
 
     else
@@ -383,6 +384,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 
 
 void mydisplay() {
+
     transform();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -391,25 +393,24 @@ void mydisplay() {
     glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-    glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
-    glVertexAttribPointer(
-        2,                                // attribute
-        3,                                // size
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );  
-
-    // Albedo일 경우 glEnableVertexAttribArray추가
-    /*
     if (RENDERMODE == 'A' || RENDERMODE == 'a')
     {
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+        glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
+        glVertexAttribPointer(
+            2,                                // attribute
+            3,                                // size
+            GL_FLOAT,                         // type
+            GL_FALSE,                         // normalized?
+            0,                                // stride
+            (void*)0                          // array buffer offset
+        );
+
+        /*
         // ambient
         glEnableVertexAttribArray(3);
         glBindBuffer(GL_ARRAY_BUFFER, ambientColorBufferID);
@@ -419,12 +420,28 @@ void mydisplay() {
         glEnableVertexAttribArray(4);
         glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        */
     }  
-    */
 
 
-    if (RENDERMODE == 'I' || RENDERMODE == 'i')
+    else if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
+
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+        glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
+        glVertexAttribPointer(
+            2,                                // attribute
+            3,                                // size
+            GL_FLOAT,                         // type
+            GL_FALSE,                         // normalized?
+            0,                                // stride
+            (void*)0                          // array buffer offset
+        );
+
         // ambient
         glEnableVertexAttribArray(3);
         glBindBuffer(GL_ARRAY_BUFFER, ambientColorBufferID);
@@ -436,9 +453,30 @@ void mydisplay() {
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
         // dissolve
+        /*
         glEnableVertexAttribArray(5);
-        glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
-        glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 0, (void*)0);       
+        glBindBuffer(GL_ARRAY_BUFFER, dissolveBufferID);
+        glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 0, (void*)0);        
+        */      
+    }
+
+    // RENDERMODE == N
+    else
+    {
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, ColorBufferID);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+        glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
+        glVertexAttribPointer(
+            2,                                // attribute
+            3,                                // size
+            GL_FLOAT,                         // type
+            GL_FALSE,                         // normalized?
+            0,                                // stride
+            (void*)0                          // array buffer offset
+        );
     }
 
     glDrawArrays(GL_TRIANGLES, 0, (3*face_num));
