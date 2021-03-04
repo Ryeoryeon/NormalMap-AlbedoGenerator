@@ -188,7 +188,7 @@ bool loadAlbedo(const char RENDERMODE, const char* objName, const char* mtlName,
 
             // RENDERMODE에 따라 투명도는 다르게 적용되어야 한다
             // Albedo의 경우 투명도가 적용되지 않도록
-            if (RENDERMODE == 'i' || RENDERMODE == 'I')
+            if (RENDERMODE == 'i' || RENDERMODE == 'I' || RENDERMODE == 'T' || RENDERMODE == 't')
                 mtlData[materialPointer].Kd.w = mtlData[materialPointer].d;
 
             else

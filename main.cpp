@@ -78,14 +78,14 @@ void transform() {
     //
 
     //glm::vec3 lightPos = glm::vec3(200, 250, 80);
-    //glm::vec3 lightPos = glm::vec3(100, 500, 80);
-    glm::vec3 lightPos = glm::vec3(150, 120, 180);
+    glm::vec3 lightPos = glm::vec3(100, 500, 80);
+    //glm::vec3 lightPos = glm::vec3(150, 120, 180);
     //glm::vec3 lightPos = glm::vec3(0, 0, 80);
     LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
     glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
-void init()
+void init(int argc, char ** argv)
 {
     glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
 
@@ -96,7 +96,7 @@ void init()
     const char* objName = "model_normalized.obj";
     const char* mtlName = "model_normalized.mtl";
 
-    std::cout << "press rendermode : N or n == Normal, A or a == Albedo, I or i == Illumination model\n";
+    std::cout << "press rendermode : N or n == Normal, A or a == Albedo, I or i == Illumination model (Transparency X), T or t == Illumination model (Transparency O)\n";
     std::cin >> RENDERMODE;
     if (RENDERMODE == 'N' || RENDERMODE == 'n')
     {
@@ -114,6 +114,12 @@ void init()
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
+    }
+
+    else if (RENDERMODE == 'T' || RENDERMODE == 't')
+    {
+        bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
+        programID = LoadShaders("Tr_illumination.vertexshader", "Tr_illumination.fragmentshader");
     }
 
     //bool res = loadNormal(objName, face_num, out_vertices, out_normals);
@@ -197,7 +203,7 @@ void init()
         glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &specularColors[0], GL_STATIC_DRAW);       
     }
 
-    else if (RENDERMODE == 'I' || RENDERMODE == 'i')
+    else if (RENDERMODE == 'I' || RENDERMODE == 'i' || RENDERMODE == 'T' || RENDERMODE == 't')
     {
         // diffuse
         glGenBuffers(1, &ColorBufferID);
@@ -243,7 +249,7 @@ void init()
     glDepthFunc(GL_LESS);
     glEnable(GL_CULL_FACE);
 
-    if (RENDERMODE == 'I' || RENDERMODE == 'i')
+    if (RENDERMODE == 'T' || RENDERMODE == 't')
     {
         // 투명도 적용을 위한 블렌드함수
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -410,21 +416,10 @@ void mydisplay() {
             (void*)0                          // array buffer offset
         );
 
-        /*
-        // ambient
-        glEnableVertexAttribArray(3);
-        glBindBuffer(GL_ARRAY_BUFFER, ambientColorBufferID);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-        // specular
-        glEnableVertexAttribArray(4);
-        glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-        */
     }  
 
 
-    else if (RENDERMODE == 'I' || RENDERMODE == 'i')
+    else if (RENDERMODE == 'I' || RENDERMODE == 'i' || RENDERMODE == 'T' || RENDERMODE == 't')
     {
 
         glEnableVertexAttribArray(1);
@@ -451,13 +446,7 @@ void mydisplay() {
         glEnableVertexAttribArray(4);
         glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-        // dissolve
-        /*
-        glEnableVertexAttribArray(5);
-        glBindBuffer(GL_ARRAY_BUFFER, dissolveBufferID);
-        glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 0, (void*)0);        
-        */      
+    
     }
 
     // RENDERMODE == N
@@ -503,7 +492,7 @@ int main(int argc, char** argv)
 
     GLenum err = glewInit();
     if (err == GLEW_OK) {
-        init();
+        init(argc, argv);
         glutMainLoop();
     }
 }

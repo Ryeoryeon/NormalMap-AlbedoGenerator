@@ -44,6 +44,6 @@ void main(){
 	//color = MaterialDiffuseColor * cosTheta * LightPower * LightColor / (distance * distance);
 	vec3 tempColor = MaterialAmbientColor + MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) + MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
 
-	vec4 tempColor_2 = vec4(tempColor, 1);
+	vec4 tempColor_2 = vec4(tempColor, diffuseColor.a);
 	color = tempColor_2;
 }
