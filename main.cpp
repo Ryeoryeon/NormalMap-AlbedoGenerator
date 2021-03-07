@@ -4,6 +4,9 @@
 #include "common.h"
 #include "NormalLoader.h"
 #include "AlbedoLoader.h"
+#include<string>
+
+std::string saveFName;
 
 GLuint programID;
 GLuint VertexBufferID;
@@ -50,6 +53,7 @@ std::vector< glm::vec3 > out_normals;
 */
 
 void timer(int value) {
+    static int cnt = 0;
     angle += glm::radians(20.0f);
     glutPostRedisplay();
     glutTimerFunc(20, timer, 0);
@@ -58,6 +62,8 @@ void timer(int value) {
         saveScreen(screenSize, screenSize, outputIdx);
     }
     ++outputIdx;
+    ++cnt;
+    if (cnt == 20) exit(0);
 }
 
 void transform() {
@@ -92,12 +98,15 @@ void init(int argc, char ** argv)
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
-
+    /*
     const char* objName = "model_normalized.obj";
     const char* mtlName = "model_normalized.mtl";
-
+    */
+    char* objName = argv[1];
+    char* mtlName = argv[2];
     std::cout << "press rendermode : N or n == Normal, A or a == Albedo, I or i == Illumination model (Transparency X), T or t == Illumination model (Transparency O)\n";
-    std::cin >> RENDERMODE;
+    RENDERMODE = argv[4][0];
+    //std::cin >> RENDERMODE;
     if (RENDERMODE == 'N' || RENDERMODE == 'n')
     {
         bool res = loadNormal(objName, face_num, out_vertices, out_normals);
@@ -481,7 +490,10 @@ void mydisplay() {
 
 int main(int argc, char** argv)
 {
-    glutInit(&argc, argv);
+    char** tmp = new char* [1];
+    tmp[0] = argv[0];
+    int ac = 1;
+    glutInit(&ac, tmp);
     glutInitWindowSize(screenSize, screenSize);
     glutInitWindowPosition(300, 150);
     glutCreateWindow("HELPME");
@@ -489,9 +501,12 @@ int main(int argc, char** argv)
     glutTimerFunc(0, timer, 0);
     glutDisplayFunc(mydisplay);
     glutReshapeFunc(myreshape); // Ãß°¡!
-
+    saveFName = argv[3];
     GLenum err = glewInit();
     if (err == GLEW_OK) {
+        for (int i = 0; i < argc; ++i)
+            printf("%s ", argv[i]);
+        puts("");
         init(argc, argv);
         glutMainLoop();
     }
@@ -579,12 +594,13 @@ void saveScreen(int W, int H, int idx)
     glReadPixels(0, 0, W, H, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixel_data);
 
     char buff[256];
+    sprintf(buff, "mkdir res\\%s", saveFName.c_str());
+    system(buff);
     //const char* filename = "output.bmp";
-    char filename[100];
-    sprintf(filename, "%c_output_%d.bmp", RENDERMODE, idx);
+    char filename[1010];
+    sprintf(filename, "./res/%s/%c_output_%d.bmp", saveFName.c_str(), RENDERMODE, idx);
 
     FILE* out = fopen(filename, "wb");
-
     char* data = pixel_data;
 
     memset(&bf, 0, sizeof(bf));
