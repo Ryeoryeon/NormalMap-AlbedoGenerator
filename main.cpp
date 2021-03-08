@@ -28,7 +28,7 @@ float angle;
 int face_num;
 int outputIdx = 0; // outputfile 저장 인덱스
 int screenSize = 800;
-char RENDERMODE; // 나중에는 N이나 A를 인자로 받아서 자동으로 출력되도록 구현하자
+char RENDERMODE;
 
 point3 boundingCent; // 만약 잘 안되면 double로 바꿔볼 것
 double boundMaxDist;
@@ -51,19 +51,45 @@ std::vector< glm::vec3 > out_vertices;
 std::vector< glm::vec2 > out_uvs;
 std::vector< glm::vec3 > out_normals;
 */
+int lightIdx = 0; // 조명 번호
+std::vector<point3> lightPos;
 
 void timer(int value) {
     static int cnt = 0;
     angle += glm::radians(20.0f);
     glutPostRedisplay();
     glutTimerFunc(20, timer, 0);
-    if (outputIdx!=0 && outputIdx < 19)
+
+    if (RENDERMODE == 'I' || RENDERMODE == 'i')
+        glUniform3f(LightID, lightPos[lightIdx].x, lightPos[lightIdx].y, lightPos[lightIdx].z);
+
+    if (outputIdx != 0 && outputIdx < 19)
     {
         saveScreen(screenSize, screenSize, outputIdx);
     }
+
     ++outputIdx;
     ++cnt;
-    if (cnt == 20) exit(0);
+
+    if (RENDERMODE == 'I' || RENDERMODE == 'i')
+    {
+        // 360도 회전이 끝나면 다음 조명으로 변경
+        if (cnt % 18 == 0)
+        {
+            ++lightIdx;
+            outputIdx = 0;
+
+            // 조명 여섯개 다 바꾸면 종료
+            if (cnt == 108)
+                exit(0);
+        }
+    }
+
+    else
+    {
+        if (cnt == 18)
+            exit(0);
+    }
 }
 
 void transform() {
@@ -84,11 +110,10 @@ void transform() {
     //
 
     //glm::vec3 lightPos = glm::vec3(200, 250, 80);
-    glm::vec3 lightPos = glm::vec3(100, 500, 80);
     //glm::vec3 lightPos = glm::vec3(150, 120, 180);
     //glm::vec3 lightPos = glm::vec3(0, 0, 80);
     LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
-    glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+    //glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
 void init(int argc, char ** argv)
@@ -100,8 +125,9 @@ void init(int argc, char ** argv)
     glBindVertexArray(VertexArrayID);
     /*
     const char* objName = "model_normalized.obj";
-    const char* mtlName = "model_normalized.mtl";
+    const char* mtlName = "model_normalized.mtl";   
     */
+
     char* objName = argv[1];
     char* mtlName = argv[2];
     std::cout << "press rendermode : N or n == Normal, A or a == Albedo, I or i == Illumination model (Transparency X), T or t == Illumination model (Transparency O)\n";
@@ -123,6 +149,13 @@ void init(int argc, char ** argv)
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
+    
+        lightPos.push_back(point3(100, 500, 80));
+        lightPos.push_back(point3(100, 80, 500));
+        lightPos.push_back(point3(300, 80, 100));
+        lightPos.push_back(point3(-300, 100, 80));
+        lightPos.push_back(point3(80, 150, -250));
+        lightPos.push_back(point3(200, -250, 400));
     }
 
     else if (RENDERMODE == 'T' || RENDERMODE == 't')
@@ -594,11 +627,26 @@ void saveScreen(int W, int H, int idx)
     glReadPixels(0, 0, W, H, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixel_data);
 
     char buff[256];
-    sprintf(buff, "mkdir res\\%s", saveFName.c_str());
+    //sprintf(buff, "cd D:/Lab/withHong");
+    //sprintf(buff, "mkdir /res\\%s", saveFName.c_str());
+    sprintf(buff, "mkdir D:\\Lab\\withHong\\res\\%s", saveFName.c_str());
     system(buff);
     //const char* filename = "output.bmp";
     char filename[1010];
-    sprintf(filename, "./res/%s/%c_output_%d.bmp", saveFName.c_str(), RENDERMODE, idx);
+
+    /*
+    if(RENDERMODE != 'I' || RENDERMODE != 'i')
+        sprintf(filename, "./res/%s/%c_output_%d.bmp", saveFName.c_str(), RENDERMODE, idx);
+
+    else if(RENDERMODE == 'I' || RENDERMODE == 'i')
+        sprintf(filename, "./res/%s/%c_output_%d_%d.bmp", saveFName.c_str(), RENDERMODE, idx, lightIdx);
+    */
+
+    if(RENDERMODE != 'I' && RENDERMODE != 'i')
+        sprintf(filename, "D:/Lab/withHong/res/%s/%c_output_%d.bmp", saveFName.c_str(), RENDERMODE, idx);
+
+    else
+        sprintf(filename, "D:/Lab/withHong/res/%s/%c_output_%d_%d.bmp", saveFName.c_str(), RENDERMODE, idx, lightIdx);
 
     FILE* out = fopen(filename, "wb");
     char* data = pixel_data;
