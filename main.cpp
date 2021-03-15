@@ -4,7 +4,10 @@
 #include "common.h"
 #include "NormalLoader.h"
 #include "AlbedoLoader.h"
+#include <opencv2/opencv.hpp>
 #include<string>
+
+using namespace cv;
 
 std::string saveFName;
 
@@ -14,7 +17,6 @@ GLuint ColorBufferID;
 GLuint ambientColorBufferID;
 GLuint specularColorBufferID;
 GLuint NormalBufferID;
-//GLuint dissolveBufferID;
 GLuint LightID;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
@@ -33,6 +35,7 @@ char RENDERMODE;
 point3 boundingCent; // 만약 잘 안되면 double로 바꿔볼 것
 double boundMaxDist;
 
+void openglToPngSave(int outputIdx);
 void saveScreen(int W, int H, int idx);
 double boundingBox(point3 & boxCent);
 
@@ -57,6 +60,7 @@ std::vector<point3> lightPos;
 void timer(int value) {
     static int cnt = 0;
     angle += glm::radians(20.0f);
+
     glutPostRedisplay();
     glutTimerFunc(20, timer, 0);
 
@@ -65,7 +69,8 @@ void timer(int value) {
 
     if (outputIdx != 0 && outputIdx < 19)
     {
-        saveScreen(screenSize, screenSize, outputIdx);
+        openglToPngSave(outputIdx);
+        //saveScreen(screenSize, screenSize, outputIdx);
     }
 
     ++outputIdx;
@@ -118,7 +123,7 @@ void transform() {
 
 void init(int argc, char ** argv)
 {
-    glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
+    //glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
 
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
@@ -137,18 +142,21 @@ void init(int argc, char ** argv)
     {
         bool res = loadNormal(objName, face_num, out_vertices, out_normals);
         programID = LoadShaders("Normal.vertexshader", "Normal.fragmentshader");
+        glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
     }
         
     else if (RENDERMODE == 'A' || RENDERMODE == 'a')
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("Albedo.vertexshader", "Albedo.fragmentshader");
+        glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
     }
 
     else if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
+        glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
     
         lightPos.push_back(point3(100, 500, 80));
         lightPos.push_back(point3(100, 80, 500));
@@ -162,6 +170,7 @@ void init(int argc, char ** argv)
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("Tr_illumination.vertexshader", "Tr_illumination.fragmentshader");
+        glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
     }
 
     //bool res = loadNormal(objName, face_num, out_vertices, out_normals);
@@ -169,7 +178,7 @@ void init(int argc, char ** argv)
     // Bounding Box
     boundMaxDist = boundingBox(boundingCent);
 
-    float scalingSize = 1.8f / boundMaxDist;
+    float scalingSize = 3.5f / boundMaxDist;
     glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scalingSize, scalingSize, scalingSize));
     glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
     glm::mat4 transformedMatrix = translateMatrix * scalingMatrix;
@@ -670,4 +679,58 @@ void saveScreen(int W, int H, int idx)
 
     fclose(out);
     free(pixel_data);
+}
+
+void openglToPngSave(int outputIdx)
+{
+    static int fileNo = 1;
+    int bitsNum;
+    GLubyte* bits; //RGB bits
+    GLint captureImage[4]; //current viewport
+
+    //get current viewport
+    glGetIntegerv(GL_VIEWPORT, captureImage); // 이미지 크기 알아내기
+
+    int rows = captureImage[3];
+    int cols = captureImage[2];
+
+    bitsNum = 3 * cols * rows;
+    bits = new GLubyte[bitsNum]; // opengl에서 읽어오는 비트
+
+    //read pixel from frame buffer
+    glFinish(); //finish all commands of OpenGL
+
+    glPixelStorei(GL_PACK_ALIGNMENT, 1); //or glPixelStorei(GL_PACK_ALIGNMENT,4);
+    glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_PACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
+    glReadPixels(0, 0, cols, rows, GL_BGR_EXT, GL_UNSIGNED_BYTE, bits);
+
+    Mat outputImage(rows, cols, CV_8UC3);
+    int currentIdx;
+
+    for (int i = 0; i < outputImage.rows; i++)
+    {
+        for (int j = 0; j < outputImage.cols; j++)
+        {
+            // stores image from top to bottom, left to right
+            currentIdx = (rows - i - 1) * 3 * cols + j * 3; // +0
+
+            outputImage.at<Vec3b>(i, j)[0] = (uchar)(bits[currentIdx]);
+            outputImage.at<Vec3b>(i, j)[1] = (uchar)(bits[++currentIdx]); // +1
+            outputImage.at<Vec3b>(i, j)[2] = (uchar)(bits[++currentIdx]); // +2
+        }
+    }
+
+    char filename[100];
+    //sprintf(filename, "%c_output_%d.bmp", RENDERMODE, idx);
+    if (RENDERMODE != 'I' && RENDERMODE != 'i')
+        sprintf(filename, "%c_output_%d.png", RENDERMODE, outputIdx);
+
+    else
+        //sprintf(filename, "%c_output_%d_%d.bmp", RENDERMODE, idx, lightIdx);
+        sprintf(filename, "%c_output_%d.png", RENDERMODE, fileNo++);
+
+    imwrite(filename, outputImage);
+    delete[] bits;
 }
