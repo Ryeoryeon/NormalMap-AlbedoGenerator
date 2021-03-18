@@ -31,7 +31,6 @@ int face_num;
 int outputIdx = 0; // outputfile 저장 인덱스
 int screenSize = 800;
 char RENDERMODE;
-
 point3 boundingCent; // 만약 잘 안되면 double로 바꿔볼 것
 double boundMaxDist;
 
@@ -48,12 +47,12 @@ std::vector<point3> specularColors;
 std::vector<point3> ambientColors;
 std::vector<point4> diffuseColors;
 
-
 /*
 std::vector< glm::vec3 > out_vertices;
 std::vector< glm::vec2 > out_uvs;
 std::vector< glm::vec3 > out_normals;
 */
+
 int lightIdx = 0; // 조명 번호
 std::vector<point3> lightPos;
 
@@ -84,8 +83,8 @@ void timer(int value) {
             ++lightIdx;
             outputIdx = 0;
 
-            // 조명 여섯개 다 바꾸면 종료
-            if (cnt == 108)
+            // 조명을 다 바꾸면 종료
+            if (cnt == 18 * lightPos.size())
                 exit(0);
         }
     }
@@ -112,11 +111,7 @@ void transform() {
     GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &View[0][0]);
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);
-    //
 
-    //glm::vec3 lightPos = glm::vec3(200, 250, 80);
-    //glm::vec3 lightPos = glm::vec3(150, 120, 180);
-    //glm::vec3 lightPos = glm::vec3(0, 0, 80);
     LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
     //glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 }
@@ -128,6 +123,7 @@ void init(int argc, char ** argv)
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
+
     /*
     const char* objName = "model_normalized.obj";
     const char* mtlName = "model_normalized.mtl";   
@@ -157,13 +153,28 @@ void init(int argc, char ** argv)
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
         glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
+
+        float origin[5][3] = { 4, 4, 4 };
+        for (int i = 0; i < 5; ++i)
+            for (int j = 0; j < 3; ++j)
+                origin[i][j] = (((10000 - rand() % 10000) / 10000.0) * 4.0) + 3.0;
+
+        for (int iidx = 0; iidx < 5; ++iidx) {
+            for (int i = 0; i < 2; ++i)
+                for (int j = 0; j < 2; ++j)
+                    for (int k = 0; k < 2; ++k)
+                        lightPos.push_back(point3(origin[iidx][0] * (i ? -1 : 1), origin[iidx][1] * (j ? -1 : 1), origin[iidx][2] * (k ? -1 : 1)));
+        }
     
+        /*
         lightPos.push_back(point3(100, 500, 80));
         lightPos.push_back(point3(100, 80, 500));
         lightPos.push_back(point3(300, 80, 100));
         lightPos.push_back(point3(-300, 100, 80));
         lightPos.push_back(point3(80, 150, -250));
         lightPos.push_back(point3(200, -250, 400));
+        */
+
     }
 
     else if (RENDERMODE == 'T' || RENDERMODE == 't')
@@ -178,7 +189,7 @@ void init(int argc, char ** argv)
     // Bounding Box
     boundMaxDist = boundingBox(boundingCent);
 
-    float scalingSize = 3.5f / boundMaxDist;
+    float scalingSize = 3.1f / boundMaxDist;
     glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scalingSize, scalingSize, scalingSize));
     glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
     glm::mat4 transformedMatrix = translateMatrix * scalingMatrix;
@@ -722,14 +733,21 @@ void openglToPngSave(int outputIdx)
         }
     }
 
-    char filename[100];
+    char buff[256];
+    //sprintf(buff, "cd D:/Lab/withHong");
+    //sprintf(buff, "mkdir /res\\%s", saveFName.c_str());
+    sprintf(buff, "mkdir D:\\Lab\\withHong\\res\\%s", saveFName.c_str());
+    system(buff);
+    //const char* filename = "output.bmp";
+    char filename[1010];
+
     //sprintf(filename, "%c_output_%d.bmp", RENDERMODE, idx);
     if (RENDERMODE != 'I' && RENDERMODE != 'i')
-        sprintf(filename, "%c_output_%d.png", RENDERMODE, outputIdx);
+        sprintf(filename, "D:/Lab/withHong/res/%s/%c_output_%d.png", saveFName.c_str(), RENDERMODE, outputIdx);
 
     else
         //sprintf(filename, "%c_output_%d_%d.bmp", RENDERMODE, idx, lightIdx);
-        sprintf(filename, "%c_output_%d.png", RENDERMODE, fileNo++);
+        sprintf(filename, "D:/Lab/withHong/res/%s/%c_output_%d.png", saveFName.c_str(), RENDERMODE, fileNo++);
 
     imwrite(filename, outputImage);
     delete[] bits;
