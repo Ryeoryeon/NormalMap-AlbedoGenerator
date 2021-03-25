@@ -29,7 +29,7 @@ glm::mat4 mvp;
 float angle;
 int face_num;
 int outputIdx = 0; // outputfile 저장 인덱스
-int screenSize = 800;
+int screenSize = 256;
 char RENDERMODE;
 point3 boundingCent; // 만약 잘 안되면 double로 바꿔볼 것
 double boundMaxDist;
@@ -68,7 +68,7 @@ void timer(int value) {
 
     if (outputIdx != 0 && outputIdx < 19)
     {
-        openglToPngSave(outputIdx);
+        openglToPngSave(outputIdx - 1);
         //saveScreen(screenSize, screenSize, outputIdx);
     }
 
@@ -181,7 +181,7 @@ void init(int argc, char ** argv)
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("Tr_illumination.vertexshader", "Tr_illumination.fragmentshader");
-        glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
+        glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
     }
 
     //bool res = loadNormal(objName, face_num, out_vertices, out_normals);
@@ -694,7 +694,7 @@ void saveScreen(int W, int H, int idx)
 
 void openglToPngSave(int outputIdx)
 {
-    static int fileNo = 1;
+    static int fileNo = 0;
     int bitsNum;
     GLubyte* bits; //RGB bits
     GLint captureImage[4]; //current viewport
