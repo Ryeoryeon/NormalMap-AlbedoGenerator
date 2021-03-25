@@ -152,7 +152,7 @@ void init(int argc, char ** argv)
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
-        glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
+        glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 
         float origin[5][3] = { 4, 4, 4 };
         for (int i = 0; i < 5; ++i)
@@ -548,7 +548,7 @@ int main(int argc, char** argv)
     int ac = 1;
     glutInit(&ac, tmp);
     glutInitWindowSize(screenSize, screenSize);
-    glutInitWindowPosition(300, 150);
+    glutInitWindowPosition(0, 800);
     glutCreateWindow("HELPME");
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
     glutTimerFunc(0, timer, 0);
