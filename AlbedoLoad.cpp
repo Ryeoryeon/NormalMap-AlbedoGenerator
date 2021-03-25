@@ -96,6 +96,13 @@ bool loadAlbedo(const char RENDERMODE, const char* objName, const char* mtlName,
     }
 
     mtlData.push_back(temp);
+    // 유효한 mtlData인지 검사하기
+    int mtlSize = mtlData.size();
+    for (int i = 0; i < mtlSize; ++i)
+    {
+        if (mtlData[i].name == "")
+            exit(0);
+    }
 
     // .obj load
     FILE* fp;

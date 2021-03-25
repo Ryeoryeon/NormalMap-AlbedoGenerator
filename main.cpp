@@ -136,7 +136,7 @@ void init(int argc, char ** argv)
     //std::cin >> RENDERMODE;
     if (RENDERMODE == 'N' || RENDERMODE == 'n')
     {
-        bool res = loadNormal(objName, face_num, out_vertices, out_normals);
+        bool res = loadNormal(objName, mtlName, face_num, out_vertices, out_normals);
         programID = LoadShaders("Normal.vertexshader", "Normal.fragmentshader");
         glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
     }
