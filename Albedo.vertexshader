@@ -49,7 +49,7 @@ void main(){
 	Normal_cameraspace = (MVP * vec4(vertexNormal_modelspace,0)).xyz;
 
 	//Normal = vertexNormal_modelspace;
-	Normal = Normal_cameraspace;
+	Normal = vec3(Normal_cameraspace.x, Normal_cameraspace.y, -Normal_cameraspace.z);
 
 }
 

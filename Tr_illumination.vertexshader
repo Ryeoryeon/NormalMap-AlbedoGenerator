@@ -45,11 +45,10 @@ void main(){
 	LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
 	
 	// Normal of the the vertex, in camera space
-	//Normal_cameraspace = ( V * M * vec4(vertexNormal_modelspace,0)).xyz;
-	Normal_cameraspace = (MVP * vec4(vertexNormal_modelspace,0)).zyx;
+	Normal_cameraspace = (MVP * vec4(vertexNormal_modelspace,0)).xyz;
 
 	//Normal = vertexNormal_modelspace;
-	Normal = vec3(Normal_cameraspace.z, Normal_cameraspace.y, -Normal_cameraspace.x);
+	Normal = vec3(Normal_cameraspace.x, Normal_cameraspace.y, -Normal_cameraspace.z);
 
 }
 

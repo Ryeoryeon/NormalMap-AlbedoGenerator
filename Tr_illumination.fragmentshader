@@ -24,14 +24,17 @@ uniform vec3 LightPosition_worldspace;
 void main(){
 	vec3 LightColor = vec3(1,1,1);
 	//float LightPower = 3.0f;
-	float LightPower = 300000.0f;
+	float LightPower = 70.0f;
 
 	// Material properties
 	vec3 MaterialDiffuseColor = vec3(diffuseColor);
 	vec3 MaterialAmbientColor = ambientColor * MaterialDiffuseColor;
 	vec3 MaterialSpecularColor = specularColor;
 
-	vec3 n = normalize(Normal_cameraspace);
+	// Ambient color가 0으로 되어있는 경우를 위해 다시 곱해주기
+	vec3 ModifiedAmbient = clamp(ambientColor, 0.65, 1.0) * MaterialDiffuseColor;
+
+	vec3 n = normalize(Normal);
 	vec3 l = normalize(LightDirection_cameraspace);
 	vec3 E = normalize(EyeDirection_cameraspace); // 카메라를 바라보는 벡터
 	vec3 R = reflect (-l, n); // 삼각형이 빛을 반사하는 방향
@@ -41,8 +44,10 @@ void main(){
 	float cosAlpha = clamp( dot( E,R ), 0,1 );
 	float cosTheta = clamp( dot( n,l), 0,1 );
 
-	//color = MaterialDiffuseColor * cosTheta * LightPower * LightColor / (distance * distance);
-	vec3 tempColor = MaterialAmbientColor + MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) + MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
+	vec3 ModifiedDiffuse = MaterialDiffuseColor * vec3(0.65f);
+	vec3 ModifiedSpecular = MaterialSpecularColor * vec3(0.1f);
+
+	vec3 tempColor = ModifiedAmbient + ModifiedDiffuse * LightColor * LightPower * cosTheta / (distance*distance) + ModifiedSpecular * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
 
 	vec4 tempColor_2 = vec4(tempColor, diffuseColor.a);
 	color = tempColor_2;
