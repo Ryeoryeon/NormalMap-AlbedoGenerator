@@ -33,6 +33,7 @@ int screenSize = 256;
 char RENDERMODE;
 point3 boundingCent; // 만약 잘 안되면 double로 바꿔볼 것
 double boundMaxDist;
+float scalingFactor = 2.5f;
 
 void openglToPngSave(int outputIdx);
 void saveScreen(int W, int H, int idx);
@@ -145,14 +146,14 @@ void init(int argc, char ** argv)
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("Albedo.vertexshader", "Albedo.fragmentshader");
-        glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+        glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
     }
 
     else if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
-        glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+        glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
 
         float origin[5][3] = { 4, 4, 4 };
         for (int i = 0; i < 5; ++i)
@@ -189,7 +190,7 @@ void init(int argc, char ** argv)
     // Bounding Box
     boundMaxDist = boundingBox(boundingCent);
 
-    float scalingSize = 3.1f / boundMaxDist;
+    float scalingSize = scalingFactor / boundMaxDist;
     glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scalingSize, scalingSize, scalingSize));
     glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
     glm::mat4 transformedMatrix = translateMatrix * scalingMatrix;
@@ -245,8 +246,6 @@ void init(int argc, char ** argv)
     //std::vector<point3> colors;
     //colors.assign(tripleFace, { 0.5, 0.5, 0.5});
 
-    // Albedo일 경우 colors(diffuse)외에도 specular와 ambient도 추가해주기
-    // 
     if (RENDERMODE == 'A' || RENDERMODE == 'a')
     {
         // diffuse
@@ -577,14 +576,14 @@ double getDist(point3 p1, point3 p2)
 
 double boundingBox(point3 & boxCent)
 {
-    point3 maxCoordX = point3(-9999, -9999, -9999);
-    point3 minCoordX = point3(9999,9999,9999);    
-    
-    point3 maxCoordY = point3(-9999, -9999, -9999);
-    point3 minCoordY = point3(9999, 9999, 9999);
+    float maxCoordX = std::numeric_limits<float>::min();
+    float maxCoordY = std::numeric_limits<float>::min();
+    float maxCoordZ = std::numeric_limits<float>::min();
 
-    point3 maxCoordZ = point3(-9999, -9999, -9999);
-    point3 minCoordZ = point3(9999, 9999, 9999);
+    float minCoordX = std::numeric_limits<float>::max();
+    float minCoordY = std::numeric_limits<float>::max();
+    float minCoordZ = std::numeric_limits<float>::max();
+
     int num = 0;
 
     // 바운딩 박스의 8개 좌표들 구하기
@@ -592,45 +591,33 @@ double boundingBox(point3 & boxCent)
     {
         point3 temp = out_vertices[i];
 
-        if (maxCoordX.x < temp.x)
-            maxCoordX = temp;
+        if (maxCoordX < temp.x)
+            maxCoordX = temp.x;
 
-        if (minCoordX.x > temp.x)
-            minCoordX = temp;
+        if (minCoordX > temp.x)
+            minCoordX = temp.x;
 
-        if (maxCoordY.y < temp.y)
-            maxCoordY = temp;
+        if (maxCoordY < temp.y)
+            maxCoordY = temp.y;
 
-        if (minCoordY.y > temp.y)
-            minCoordY = temp;
+        if (minCoordY > temp.y)
+            minCoordY = temp.y;
 
-        if (maxCoordZ.z < temp.z)
-            maxCoordZ = temp;
+        if (maxCoordZ < temp.z)
+            maxCoordZ = temp.z;
 
-        if (minCoordZ.z > temp.z)
-            minCoordZ = temp;
+        if (minCoordZ > temp.z)
+            minCoordZ = temp.z;
     }
 
     // 바운딩 박스의 중심의 좌표 구하기
-    boxCent.x = (maxCoordX.x + minCoordX.x) / 2.f;
-    boxCent.y = (maxCoordY.y + minCoordY.y) / 2.f;
-    boxCent.z = (maxCoordZ.z + minCoordZ.z) / 2.f;
+    boxCent.x = (maxCoordX + minCoordX) * 0.5f;
+    boxCent.y = (maxCoordY + minCoordY) * 0.5f;
+    boxCent.z = (maxCoordZ + minCoordZ) * 0.5f;
 
     // 바운딩 박스의 대각선 길이
     // maxCoordX를 기준으로 잡을 시, 절대 minCoordX와는 최대거리가 성립하지 않는다
-    double maxDist = getDist(maxCoordX, maxCoordY);
-    double cmpDist = getDist(maxCoordX, minCoordY);
-
-    if (maxDist < cmpDist)
-        maxDist = cmpDist;
-
-    cmpDist = getDist(maxCoordX, maxCoordZ);
-    if (maxDist < cmpDist)
-        maxDist = cmpDist;
-
-    cmpDist = getDist(maxCoordX, minCoordZ);
-    if (maxDist < cmpDist)
-        maxDist = cmpDist;
+    float maxDist = getDist(point3(maxCoordX, maxCoordY, maxCoordZ), boxCent);
 
     return maxDist;
 }
