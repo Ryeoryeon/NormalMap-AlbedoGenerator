@@ -48,6 +48,9 @@ std::vector<point3> specularColors;
 std::vector<point3> ambientColors;
 std::vector<point4> diffuseColors;
 
+// directional Light
+glm::vec3 lightDir(1.0f, 1.0f, 3.0f);
+
 /*
 std::vector< glm::vec3 > out_vertices;
 std::vector< glm::vec2 > out_uvs;
@@ -55,7 +58,7 @@ std::vector< glm::vec3 > out_normals;
 */
 
 int lightIdx = 0; // 조명 번호
-std::vector<point3> lightPos;
+//std::vector<point3> lightPos;
 
 void timer(int value) {
     static int cnt = 0;
@@ -65,7 +68,8 @@ void timer(int value) {
     glutTimerFunc(20, timer, 0);
 
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
-        glUniform3f(LightID, lightPos[lightIdx].x, lightPos[lightIdx].y, lightPos[lightIdx].z);
+        glUniform3f(LightID, lightDir.x, lightDir.y, lightDir.z);
+        //glUniform3f(LightID, lightPos[lightIdx].x, lightPos[lightIdx].y, lightPos[lightIdx].z);
 
     if (outputIdx != 0 && outputIdx < 19)
     {
@@ -76,6 +80,7 @@ void timer(int value) {
     ++outputIdx;
     ++cnt;
 
+    /*
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
         // 360도 회전이 끝나면 다음 조명으로 변경
@@ -95,6 +100,12 @@ void timer(int value) {
         if (cnt == 18)
             exit(0);
     }
+    */
+
+    // 1개의 directional light만 사용
+    if (cnt == 18)
+        exit(0);
+
 }
 
 void transform() {
@@ -155,25 +166,34 @@ void init(int argc, char ** argv)
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
         glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
 
-        float origin[5][3] = { 4, 4, 4 };
-        for (int i = 0; i < 5; ++i)
+        /*
+        // 조명 개수 무식하게 줄여보기
+
+        // (1)
+        float origin[1][3] = { 4, 4, 4 };
+        for (int i = 0; i < 1; ++i)
             for (int j = 0; j < 3; ++j)
                 origin[i][j] = (((10000 - rand() % 10000) / 10000.0) * 4.0) + 3.0;
 
-        for (int iidx = 0; iidx < 5; ++iidx) {
+        for (int iidx = 0; iidx < 1; ++iidx) {
+            lightPos.push_back(point3(origin[iidx][0] * (-1), origin[iidx][1] * 1, origin[iidx][2] * (-1)));
+            lightPos.push_back(point3(origin[iidx][0], origin[iidx][1] * 1, origin[iidx][2] * (-1)));
+            lightPos.push_back(point3(origin[iidx][0], origin[iidx][1], origin[iidx][2]));
+
+        }
+
+        // (2)
+        float origin[2][3] = { 4, 4, 4 }; // 원래는 [5][3]
+        for (int i = 0; i < 2; ++i) // 원래는 i < 5;
+            for (int j = 0; j < 3; ++j)
+                origin[i][j] = (((10000 - rand() % 10000) / 10000.0) * 4.0) + 3.0;
+        
+        for (int iidx = 0; iidx < 2; ++iidx) { // 원래는 < 5 까지
             for (int i = 0; i < 2; ++i)
                 for (int j = 0; j < 2; ++j)
                     for (int k = 0; k < 2; ++k)
                         lightPos.push_back(point3(origin[iidx][0] * (i ? -1 : 1), origin[iidx][1] * (j ? -1 : 1), origin[iidx][2] * (k ? -1 : 1)));
         }
-    
-        /*
-        lightPos.push_back(point3(100, 500, 80));
-        lightPos.push_back(point3(100, 80, 500));
-        lightPos.push_back(point3(300, 80, 100));
-        lightPos.push_back(point3(-300, 100, 80));
-        lightPos.push_back(point3(80, 150, -250));
-        lightPos.push_back(point3(200, -250, 400));
         */
 
     }
