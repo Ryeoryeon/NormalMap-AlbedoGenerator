@@ -1,0 +1,41 @@
+#version 330 core
+
+// Interpolated values from the vertex shaders
+//in vec3 fragmentColor;
+in vec3 diffuseColor;
+in vec3 ambientColor;
+in vec3 specularColor;
+
+in vec3 Position_worldspace;
+in vec3 Normal_cameraspace;
+in vec3 EyeDirection_cameraspace;
+in vec3 LightDirection_cameraspace;
+in vec3 Normal;
+
+// Ouput data
+out vec3 color;
+
+// Values that stay constant for the whole mesh.
+//uniform mat4 MV;
+uniform vec3 LightPosition_worldspace;
+uniform vec3 MaterialDiffuseColor;
+uniform vec3 MaterialAmbientColor;
+uniform vec3 MaterialSpecularColor;
+
+void main(){
+	vec3 LightColor = vec3(1,1,1);
+	float LightPower = 5000.0f;
+	
+	// Material properties
+	vec3 MaterialDiffuseColor = diffuseColor;
+	vec3 MaterialAmbientColor = ambientColor * MaterialDiffuseColor;
+	vec3 MaterialSpecularColor = specularColor;
+
+	// Distance to the light
+	//float distance = length( LightPosition_worldspace - Position_worldspace );
+	//float cosAlpha = clamp( dot( E,R ), 0,1 );
+	//float cosTheta = clamp( dot( n,l ), 0,1 );
+
+	color = MaterialDiffuseColor;
+
+}
