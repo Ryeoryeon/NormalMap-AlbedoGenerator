@@ -23,6 +23,7 @@ glm::mat4 Projection;
 glm::mat4 View;
 glm::mat4 Model;
 glm::mat4 mvp;
+glm::mat4 rotate30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0, 1.0f, 0));
 
 float angle;
 int face_num;
@@ -49,51 +50,84 @@ std::vector<point3> ambientColors;
 std::vector<point4> diffuseColors;
 
 // 조명의 위치들을 저장하는 벡터
-//glm::vec3 lightPos = glm::vec3(100, 500, 80);
 //std::vector<point3> lightPos;
-std::vector<point3> lightPos;
 
-/*
-std::vector< glm::vec3 > out_vertices;
-std::vector< glm::vec2 > out_uvs;
-std::vector< glm::vec3 > out_normals;
-*/
+// directional Light
+std::vector<point3> lightDir;
+std::vector<point4> boundingBoxCoordinate;
+//glm::vec3 lightDir(1.0f, sqrt(3.0), -sqrt(3.0));
 
 void timer(int value) {
     static int cnt = 0;
-    angle += glm::radians(20.0f);
-    glutPostRedisplay();
-    glutTimerFunc(20, timer, 0);
+    angle += glm::radians(30.0f);
+    glutPostRedisplay(); // 윈도우를 다시 그리도록 요청하는 함수
+    glutTimerFunc(30, timer, 0);
+
+    glm::vec4 temp;
+
+    float boundingMaxZ = -99999999;
+    for (int i = 0; i < 8; ++i)
+    {
+        temp = glm::vec4(boundingBoxCoordinate[i].x, boundingBoxCoordinate[i].y, boundingBoxCoordinate[i].z, 1);
+        temp = rotate30Matrix * temp;
+        boundingBoxCoordinate[i] = point4(temp.x, temp.y, temp.z, 1);
+        if (boundingMaxZ < boundingBoxCoordinate[i].z)
+            boundingMaxZ = boundingBoxCoordinate[i].z;
+    }
+  
+
+    float boundingMinZ = 99999999;
+    for (int i = 0; i < 8; ++i)
+    {
+        temp = glm::vec4(boundingBoxCoordinate[i].x, boundingBoxCoordinate[i].y, boundingBoxCoordinate[i].z, 1);
+        temp = rotate30Matrix * temp;
+        boundingBoxCoordinate[i] = point4(temp.x, temp.y, temp.z, 1);
+        if (boundingMinZ > boundingBoxCoordinate[i].z)
+            boundingMinZ = boundingBoxCoordinate[i].z;
+    }
+
 
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
-        glUniform3f(LightID, lightPos[lightIdx].x, lightPos[lightIdx].y, lightPos[lightIdx].z);
+        glUniform3f(LightID, lightDir[lightIdx].x, lightDir[lightIdx].y, lightDir[lightIdx].z);
+        //glUniform3f(LightID, lightPos[lightIdx].x, lightPos[lightIdx].y, lightPos[lightIdx].z);
 
-    if (outputIdx != 0 && outputIdx < 19)
+    if (outputIdx != 0 && outputIdx < 12)
     {
-        openglToPngSave(outputIdx - 1);
-        //saveScreen(screenSize, screenSize, outputIdx);
+
+        if (RENDERMODE == 'I' || RENDERMODE == 'i')
+        {
+            //if (lightDir[lightIdx].z > boundingCent.z)
+                //openglToPngSave(outputIdx - 1);
+            //if (lightDir[lightIdx].z < boundingMaxZ)
+                //openglToPngSave(outputIdx - 1);
+            openglToPngSave(outputIdx - 1);
+        }
+
+        else
+            openglToPngSave(outputIdx - 1);
     }
 
     ++outputIdx;
     ++cnt;
 
+    // 여러 개의 light를 사용할 때
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
         // 360도 회전이 끝나면 다음 조명으로 변경
-        if (cnt % 18 == 0)
+        if (cnt % 12 == 0)
         {
             ++lightIdx;
             outputIdx = 0;
 
             // 조명 다 바꾸면 종료
-            if (cnt == 18 * lightPos.size())
+            if (cnt == 12 * lightDir.size())
                 exit(0);
         }
     }
 
     else
     {
-        if (cnt == 18)
+        if (cnt == 12)
             exit(0);
     }
 }
@@ -109,18 +143,14 @@ void transform() {
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
     //
+    GLuint ProjectionMatrixID = glGetUniformLocation(programID, "P");
     GLuint ViewMatrixID = glGetUniformLocation(programID, "V");
     GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &View[0][0]);
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);
     //
 
-    //glm::vec3 lightPos = glm::vec3(200, 250, 80);
-    //glm::vec3 lightPos = glm::vec3(150, 120, 180);
-    //glm::vec3 lightPos = glm::vec3(0, 0, 80);
-
     LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
-    //glUniform3f(LightID, lightPos[1].x, lightPos[1].y, lightPos[1].z);
 }
 
 void init(int argc, char ** argv)
@@ -156,32 +186,42 @@ void init(int argc, char ** argv)
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
 
-        // 걸러내기 수작업 필요할 것 같다
-        // 필요없는 각도 제외하고 _각도_조명 순이 아니라 걍 데이터 따따따따..
-        //float origin[3] = { 4, 4, 4 };
+
+        /*
         float origin[5][3] = { 4, 4, 4 };
         for (int i = 0; i < 5; ++i)
             for (int j = 0; j < 3; ++j)
                 origin[i][j] = (((10000 - rand() % 10000) / 10000.0) * 4.0) + 3.0;
 
-        /*
         for (int iidx = 0; iidx < 5; ++iidx) {
             for (int i = 0; i < 2; ++i)
                 for (int j = 0; j < 2; ++j)
                     for (int k = 0; k < 2; ++k)
                         lightPos.push_back(point3(origin[iidx][0] * (i ? -1 : 1), origin[iidx][1] * (j ? -1 : 1), origin[iidx][2] * (k ? -1 : 1)));
         }
-
         */
 
+        /*
+        // point light 사용 코드 (빛의 간섭 존재 O)
         lightPos.push_back(point3(-3, 3.5, 4));
         lightPos.push_back(point3(-3, 4, 3.5));
         lightPos.push_back(point3(3.5, -3, 4));
         lightPos.push_back(point3(3.5, 4, -3));
         lightPos.push_back(point3(4, 3.5, -3));
-        lightPos.push_back(point3(4, -3, 3.5));       
+        lightPos.push_back(point3(4, -3, 3.5));    
+        */
+        
+        lightDir.push_back(point3(1.0f, sqrt(3.0), -sqrt(3.0))); // 조명의 첫 위치
+        point3 pushTemp;
+        glm::vec4 temp(1.0f, sqrt(3.0), -sqrt(3.0), 1);
+        for (int j = 0; j < 10; ++j) // 처음에 한 번 넣어줬으므로 10번 회전이 더 필요
+        {
+            temp = rotate30Matrix * temp;
+            pushTemp = point3(temp.x, temp.y, temp.z);
+            lightDir.push_back(pushTemp);
+        }
 
-        //glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+        //lightDir = normalize(-lightDir); // shader에서 했음 일단
         glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
     }
 
@@ -615,6 +655,18 @@ double boundingBox(point3 & boxCent)
     boxCent.x = (maxCoordX + minCoordX) * 0.5f;
     boxCent.y = (maxCoordY + minCoordY) * 0.5f;
     boxCent.z = (maxCoordZ + minCoordZ) * 0.5f;
+
+    boundingBoxCoordinate.push_back(point4(maxCoordX, maxCoordY, maxCoordZ, 1));
+
+    boundingBoxCoordinate.push_back(point4(maxCoordX, maxCoordY, minCoordZ, 1));
+    boundingBoxCoordinate.push_back(point4(maxCoordX, minCoordY, maxCoordZ, 1));
+    boundingBoxCoordinate.push_back(point4(minCoordX, maxCoordY, maxCoordZ, 1));
+
+    boundingBoxCoordinate.push_back(point4(maxCoordX, minCoordY, minCoordZ, 1));
+    boundingBoxCoordinate.push_back(point4(minCoordX, maxCoordY, minCoordZ, 1));
+    boundingBoxCoordinate.push_back(point4(minCoordX, minCoordY, maxCoordZ, 1));
+
+    boundingBoxCoordinate.push_back(point4(minCoordX, minCoordY, minCoordZ, 1));
 
     // 바운딩 박스의 대각선 길이
     // maxCoordX를 기준으로 잡을 시, 절대 minCoordX와는 최대거리가 성립하지 않는다

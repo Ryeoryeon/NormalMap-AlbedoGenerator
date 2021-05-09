@@ -14,10 +14,11 @@ out vec3 specularColor;
 out vec3 Position_worldspace;
 out vec3 Normal_cameraspace;
 out vec3 EyeDirection_cameraspace;
-out vec3 LightDirection_cameraspace;
+out vec4 LightDirection_cameraspace;
 out vec3 Normal;
 
 // Values that stay constant for the whole mesh.
+uniform mat4 P;
 uniform mat4 MVP;
 uniform mat4 V;
 uniform mat4 M;
@@ -41,8 +42,10 @@ void main(){
 	EyeDirection_cameraspace = vec3(0,0,0) - vertexPosition_cameraspace;
 
 	// Vector that goes from the vertex to the light, in camera space. M is ommited because it's identity.
-	vec3 LightPosition_cameraspace = ( V * vec4(LightPosition_worldspace,1)).xyz;
-	LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
+	vec4 LightPosition_cameraspace = V * vec4(LightPosition_worldspace, 1.0); // 회전하지 않는 조명
+	// vec4 LightPosition_cameraspace = V * M * vec4(LightPosition_worldspace, 1.0); // 회전하는 조명
+	LightDirection_cameraspace = LightPosition_cameraspace;
+	// LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
 	
 	// Normal of the the vertex, in camera space
 	Normal_cameraspace = (MVP * vec4(vertexNormal_modelspace,0)).xyz;

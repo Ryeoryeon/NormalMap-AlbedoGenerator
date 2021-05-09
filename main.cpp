@@ -25,6 +25,7 @@ glm::mat4 Projection;
 glm::mat4 View;
 glm::mat4 Model;
 glm::mat4 mvp;
+glm::mat4 rotate30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0, 1.0f, 0));
 
 float angle;
 int face_num;
@@ -49,7 +50,8 @@ std::vector<point3> ambientColors;
 std::vector<point4> diffuseColors;
 
 // directional Light
-glm::vec3 lightDir(1.0f, 1.0f, 3.0f);
+std::vector<point3> lightDir;
+std::vector<point4> boundingBoxCoordinate;
 
 /*
 std::vector< glm::vec3 > out_vertices;
@@ -62,16 +64,16 @@ int lightIdx = 0; // 조명 번호
 
 void timer(int value) {
     static int cnt = 0;
-    angle += glm::radians(20.0f);
+    angle += glm::radians(30.0f);
 
     glutPostRedisplay();
-    glutTimerFunc(20, timer, 0);
+    glutTimerFunc(30, timer, 0);
 
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
-        glUniform3f(LightID, lightDir.x, lightDir.y, lightDir.z);
+        glUniform3f(LightID, lightDir[lightIdx].x, lightDir[lightIdx].y, lightDir[lightIdx].z);
         //glUniform3f(LightID, lightPos[lightIdx].x, lightPos[lightIdx].y, lightPos[lightIdx].z);
 
-    if (outputIdx != 0 && outputIdx < 19)
+    if (outputIdx != 0 && outputIdx < 12)
     {
         openglToPngSave(outputIdx - 1);
         //saveScreen(screenSize, screenSize, outputIdx);
@@ -80,31 +82,26 @@ void timer(int value) {
     ++outputIdx;
     ++cnt;
 
-    /*
+    // 여러 개의 light를 사용할 때
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
         // 360도 회전이 끝나면 다음 조명으로 변경
-        if (cnt % 18 == 0)
+        if (cnt % 12 == 0)
         {
             ++lightIdx;
             outputIdx = 0;
 
-            // 조명을 다 바꾸면 종료
-            if (cnt == 18 * lightPos.size())
+            // 조명 다 바꾸면 종료
+            if (cnt == 12 * lightDir.size())
                 exit(0);
         }
     }
 
     else
     {
-        if (cnt == 18)
+        if (cnt == 12)
             exit(0);
     }
-    */
-
-    // 1개의 directional light만 사용
-    if (cnt == 18)
-        exit(0);
 
 }
 
@@ -166,35 +163,15 @@ void init(int argc, char ** argv)
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
         glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
 
-        /*
-        // 조명 개수 무식하게 줄여보기
-
-        // (1)
-        float origin[1][3] = { 4, 4, 4 };
-        for (int i = 0; i < 1; ++i)
-            for (int j = 0; j < 3; ++j)
-                origin[i][j] = (((10000 - rand() % 10000) / 10000.0) * 4.0) + 3.0;
-
-        for (int iidx = 0; iidx < 1; ++iidx) {
-            lightPos.push_back(point3(origin[iidx][0] * (-1), origin[iidx][1] * 1, origin[iidx][2] * (-1)));
-            lightPos.push_back(point3(origin[iidx][0], origin[iidx][1] * 1, origin[iidx][2] * (-1)));
-            lightPos.push_back(point3(origin[iidx][0], origin[iidx][1], origin[iidx][2]));
-
+        lightDir.push_back(point3(1.0f, sqrt(3.0), -sqrt(3.0))); // 조명의 첫 위치
+        point3 pushTemp;
+        glm::vec4 temp(1.0f, sqrt(3.0), -sqrt(3.0), 1);
+        for (int j = 0; j < 10; ++j) // 처음에 한 번 넣어줬으므로 10번 회전이 더 필요
+        {
+            temp = rotate30Matrix * temp;
+            pushTemp = point3(temp.x, temp.y, temp.z);
+            lightDir.push_back(pushTemp);
         }
-
-        // (2)
-        float origin[2][3] = { 4, 4, 4 }; // 원래는 [5][3]
-        for (int i = 0; i < 2; ++i) // 원래는 i < 5;
-            for (int j = 0; j < 3; ++j)
-                origin[i][j] = (((10000 - rand() % 10000) / 10000.0) * 4.0) + 3.0;
-        
-        for (int iidx = 0; iidx < 2; ++iidx) { // 원래는 < 5 까지
-            for (int i = 0; i < 2; ++i)
-                for (int j = 0; j < 2; ++j)
-                    for (int k = 0; k < 2; ++k)
-                        lightPos.push_back(point3(origin[iidx][0] * (i ? -1 : 1), origin[iidx][1] * (j ? -1 : 1), origin[iidx][2] * (k ? -1 : 1)));
-        }
-        */
 
     }
 
@@ -634,6 +611,18 @@ double boundingBox(point3 & boxCent)
     boxCent.x = (maxCoordX + minCoordX) * 0.5f;
     boxCent.y = (maxCoordY + minCoordY) * 0.5f;
     boxCent.z = (maxCoordZ + minCoordZ) * 0.5f;
+
+    boundingBoxCoordinate.push_back(point4(maxCoordX, maxCoordY, maxCoordZ, 1));
+
+    boundingBoxCoordinate.push_back(point4(maxCoordX, maxCoordY, minCoordZ, 1));
+    boundingBoxCoordinate.push_back(point4(maxCoordX, minCoordY, maxCoordZ, 1));
+    boundingBoxCoordinate.push_back(point4(minCoordX, maxCoordY, maxCoordZ, 1));
+
+    boundingBoxCoordinate.push_back(point4(maxCoordX, minCoordY, minCoordZ, 1));
+    boundingBoxCoordinate.push_back(point4(minCoordX, maxCoordY, minCoordZ, 1));
+    boundingBoxCoordinate.push_back(point4(minCoordX, minCoordY, maxCoordZ, 1));
+
+    boundingBoxCoordinate.push_back(point4(minCoordX, minCoordY, minCoordZ, 1));
 
     // 바운딩 박스의 대각선 길이
     // maxCoordX를 기준으로 잡을 시, 절대 minCoordX와는 최대거리가 성립하지 않는다
