@@ -25,9 +25,14 @@ glm::mat4 Model;
 glm::mat4 mvp;
 glm::mat4 rotate30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0, 1.0f, 0));
 
+glm::vec3 eyeVector = glm::vec3(3, 4, 3);
+glm::vec3 originVector = glm::vec3(0, 0, 0);
+glm::vec3 temp = normalize(originVector - eyeVector);
+glm::vec4 viewDirection = glm::vec4(temp.x, temp.y, temp.z, 1);
+
 float angle;
 int face_num;
-int outputIdx = 0; // outputfile 저장 인덱스
+int outputIdx = -1; // outputfile 저장 인덱스 (첫 화면은 렌더링 X이므로 한 번 skip되도록)
 int screenSize = 256;
 char RENDERMODE; // 나중에는 N이나 A를 인자로 받아서 자동으로 출력되도록 구현하자
 int lightIdx = 0; // 조명 번호
@@ -58,63 +63,50 @@ std::vector<point4> boundingBoxCoordinate;
 //glm::vec3 lightDir(1.0f, sqrt(3.0), -sqrt(3.0));
 
 void timer(int value) {
-    static int cnt = 0;
+    static int cnt = -1;
     angle += glm::radians(30.0f);
     glutPostRedisplay(); // 윈도우를 다시 그리도록 요청하는 함수
     glutTimerFunc(30, timer, 0);
+    viewDirection = rotate30Matrix * viewDirection;
 
-    glm::vec4 temp;
-
-    float boundingMaxZ = -99999999;
-    for (int i = 0; i < 8; ++i)
-    {
-        temp = glm::vec4(boundingBoxCoordinate[i].x, boundingBoxCoordinate[i].y, boundingBoxCoordinate[i].z, 1);
-        temp = rotate30Matrix * temp;
-        boundingBoxCoordinate[i] = point4(temp.x, temp.y, temp.z, 1);
-        if (boundingMaxZ < boundingBoxCoordinate[i].z)
-            boundingMaxZ = boundingBoxCoordinate[i].z;
-    }
-  
-
-    float boundingMinZ = 99999999;
-    for (int i = 0; i < 8; ++i)
-    {
-        temp = glm::vec4(boundingBoxCoordinate[i].x, boundingBoxCoordinate[i].y, boundingBoxCoordinate[i].z, 1);
-        temp = rotate30Matrix * temp;
-        boundingBoxCoordinate[i] = point4(temp.x, temp.y, temp.z, 1);
-        if (boundingMinZ > boundingBoxCoordinate[i].z)
-            boundingMinZ = boundingBoxCoordinate[i].z;
-    }
-
+    // y축에 대해 0~90도, 270~360도 검출을 위해 y성분 0으로 만든 뒤 내적
+    //tempView.y = 0;
+    //tempLight.y = 0;
 
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
         glUniform3f(LightID, lightDir[lightIdx].x, lightDir[lightIdx].y, lightDir[lightIdx].z);
-        //glUniform3f(LightID, lightPos[lightIdx].x, lightPos[lightIdx].y, lightPos[lightIdx].z);
 
-    if (outputIdx != 0 && outputIdx < 12)
+    ++outputIdx;
+    ++cnt;
+
+    if (outputIdx != 0 && outputIdx <= 12)
     {
-
         if (RENDERMODE == 'I' || RENDERMODE == 'i')
         {
-            //if (lightDir[lightIdx].z > boundingCent.z)
-                //openglToPngSave(outputIdx - 1);
-            //if (lightDir[lightIdx].z < boundingMaxZ)
-                //openglToPngSave(outputIdx - 1);
-            openglToPngSave(outputIdx - 1);
+            glm::vec3 tempView = normalize(glm::vec3(viewDirection.x, 0, viewDirection.z));
+            // lightvector는 direction 기준이 되어야 하므로 원점에서 빼준 뒤 비교
+            glm::vec3 tempLight = normalize(glm::vec3(-lightDir[lightIdx].x, 0, -lightDir[lightIdx].z));
+
+            if (lightIdx == 1)
+                std::cout << "?" << '\n';
+                
+            float dotVal = dot(tempView, tempLight);
+            std::cout << "idx : "<<outputIdx << " dotVal : "<< dotVal << '\n';
+
+            if(dotVal >= 0)
+                openglToPngSave(outputIdx - 1);
         }
 
         else
             openglToPngSave(outputIdx - 1);
     }
 
-    ++outputIdx;
-    ++cnt;
 
     // 여러 개의 light를 사용할 때
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
         // 360도 회전이 끝나면 다음 조명으로 변경
-        if (cnt % 12 == 0)
+        if (cnt != 0 && cnt % 12 == 0)
         {
             ++lightIdx;
             outputIdx = 0;
@@ -136,6 +128,7 @@ void transform() {
     // Model matrix : an identity matrix (model will be at the origin)
     Model = glm::mat4(1.0f);
     Model = glm::rotate(Model, angle, glm::vec3(0, 1, 0));
+    std::cout << "잉?" << '\n';
 
     // ModelViewProjection
     mvp = Projection * View * Model;
@@ -211,15 +204,19 @@ void init(int argc, char ** argv)
         lightPos.push_back(point3(4, -3, 3.5));    
         */
         
-        lightDir.push_back(point3(1.0f, sqrt(3.0), -sqrt(3.0))); // 조명의 첫 위치
+        lightDir.push_back(point3(10,-2,-3));
+        //lightDir.push_back(point3(1.0f, sqrt(3.0), -sqrt(3.0))); // 조명의 첫 위치
         point3 pushTemp;
         glm::vec4 temp(1.0f, sqrt(3.0), -sqrt(3.0), 1);
+        /*
         for (int j = 0; j < 10; ++j) // 처음에 한 번 넣어줬으므로 10번 회전이 더 필요
         {
             temp = rotate30Matrix * temp;
             pushTemp = point3(temp.x, temp.y, temp.z);
             lightDir.push_back(pushTemp);
         }
+        */
+
 
         //lightDir = normalize(-lightDir); // shader에서 했음 일단
         glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
@@ -376,10 +373,10 @@ void myreshape(int w, int h)
         (float)w / (float)h, 0.1f, 100.0f);
 
     View = glm::lookAt(
-        glm::vec3(3, 4, 3), // Camera is at (3,4,3), in World Space
-        //glm::vec3(0, 1, -1), // 접시 최적 좌표
-        // glm::vec3(tempX, tempY, tempZ),
-        glm::vec3(0, 0, 0), // and looks at the origin
+        eyeVector,
+        originVector,
+        //glm::vec3(3, 4, 3), // Camera is at (3,4,3), in World Space
+        //glm::vec3(0, 0, 0), // and looks at the origin
         glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
     );
 
@@ -394,6 +391,7 @@ void myreshape(int w, int h)
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);   
     */
+
 
     transform();
 }
