@@ -24,7 +24,6 @@ uniform vec3 LightPosition_worldspace;
 void main(){
 	vec3 LightColor = vec3(1,1,1);
 	float LightPower = 3.0f;
-	//float LightPower = 70.0f;
 
 	// Material properties
 	vec3 MaterialDiffuseColor = vec3(diffuseColor);

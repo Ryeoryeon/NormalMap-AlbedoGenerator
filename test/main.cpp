@@ -24,11 +24,13 @@ glm::mat4 View;
 glm::mat4 Model;
 glm::mat4 mvp;
 glm::mat4 rotate30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0, 1.0f, 0));
+glm::mat4 rotateCounter30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(-30.0f), glm::vec3(0, 1.0f, 0)); // 첫 싱크 맞춰주기용
 
-glm::vec3 eyeVector = glm::vec3(3, 4, 3);
-glm::vec3 originVector = glm::vec3(0, 0, 0);
-glm::vec3 temp = normalize(originVector - eyeVector);
-glm::vec4 viewDirection = glm::vec4(temp.x, temp.y, temp.z, 1);
+glm::vec3 eyePosition = glm::vec3(0, 5, 5);
+glm::vec3 originPosition = glm::vec3(0, 0, 0);
+glm::vec3 temp = normalize(originPosition - eyePosition);
+glm::vec4 viewDirection = rotateCounter30Matrix * glm::vec4(temp.x, temp.y, temp.z, 1);
+//glm::vec4 viewDirection = glm::vec4(temp.x, temp.y, temp.z, 1);
 
 float angle;
 int face_num;
@@ -43,7 +45,7 @@ double boundMaxDist;
 
 void saveScreen(int W, int H, int idx);
 void openglToPngSave(int outputIdx);
-double boundingBox(point3 & boxCent);
+double boundingBox(point3& boxCent);
 
 std::vector<point3> out_vertices;
 std::vector<point2> out_uvs;
@@ -64,10 +66,12 @@ std::vector<point4> boundingBoxCoordinate;
 
 void timer(int value) {
     static int cnt = -1;
-    angle += glm::radians(30.0f);
+    //angle += glm::radians(30.0f);
     glutPostRedisplay(); // 윈도우를 다시 그리도록 요청하는 함수
     glutTimerFunc(30, timer, 0);
-    viewDirection = rotate30Matrix * viewDirection;
+    angle += glm::radians(30.0f);
+
+    //viewDirection = rotate30Matrix * viewDirection;
 
     // y축에 대해 0~90도, 270~360도 검출을 위해 y성분 0으로 만든 뒤 내적
     //tempView.y = 0;
@@ -84,16 +88,14 @@ void timer(int value) {
         if (RENDERMODE == 'I' || RENDERMODE == 'i')
         {
             glm::vec3 tempView = normalize(glm::vec3(viewDirection.x, 0, viewDirection.z));
-            // lightvector는 direction 기준이 되어야 하므로 원점에서 빼준 뒤 비교
-            glm::vec3 tempLight = normalize(glm::vec3(-lightDir[lightIdx].x, 0, -lightDir[lightIdx].z));
 
-            if (lightIdx == 1)
-                std::cout << "?" << '\n';
-                
+            glm::vec3 tempLight = normalize(glm::vec3(lightDir[lightIdx].x, 0, lightDir[lightIdx].z));
+
             float dotVal = dot(tempView, tempLight);
-            std::cout << "idx : "<<outputIdx << " dotVal : "<< dotVal << '\n';
+            std::cout << "idx : " << outputIdx - 1 << " dotVal : " << dotVal << '\n';
 
-            if(dotVal >= 0)
+            //openglToPngSave(outputIdx - 1);
+            if(dotVal <= 0)
                 openglToPngSave(outputIdx - 1);
         }
 
@@ -128,7 +130,7 @@ void transform() {
     // Model matrix : an identity matrix (model will be at the origin)
     Model = glm::mat4(1.0f);
     Model = glm::rotate(Model, angle, glm::vec3(0, 1, 0));
-    std::cout << "잉?" << '\n';
+    viewDirection = rotate30Matrix * viewDirection;
 
     // ModelViewProjection
     mvp = Projection * View * Model;
@@ -146,7 +148,7 @@ void transform() {
     LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
 }
 
-void init(int argc, char ** argv)
+void init(int argc, char** argv)
 {
     //glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
 
@@ -165,7 +167,7 @@ void init(int argc, char ** argv)
         programID = LoadShaders("Normal.vertexshader", "Normal.fragmentshader");
         glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
     }
-        
+
     else if (RENDERMODE == 'A' || RENDERMODE == 'a')
     {
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
@@ -179,21 +181,6 @@ void init(int argc, char ** argv)
         bool res = loadAlbedo(RENDERMODE, objName, mtlName, face_num, out_vertices, diffuseColors, ambientColors, specularColors, out_normals);
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
 
-
-        /*
-        float origin[5][3] = { 4, 4, 4 };
-        for (int i = 0; i < 5; ++i)
-            for (int j = 0; j < 3; ++j)
-                origin[i][j] = (((10000 - rand() % 10000) / 10000.0) * 4.0) + 3.0;
-
-        for (int iidx = 0; iidx < 5; ++iidx) {
-            for (int i = 0; i < 2; ++i)
-                for (int j = 0; j < 2; ++j)
-                    for (int k = 0; k < 2; ++k)
-                        lightPos.push_back(point3(origin[iidx][0] * (i ? -1 : 1), origin[iidx][1] * (j ? -1 : 1), origin[iidx][2] * (k ? -1 : 1)));
-        }
-        */
-
         /*
         // point light 사용 코드 (빛의 간섭 존재 O)
         lightPos.push_back(point3(-3, 3.5, 4));
@@ -201,22 +188,30 @@ void init(int argc, char ** argv)
         lightPos.push_back(point3(3.5, -3, 4));
         lightPos.push_back(point3(3.5, 4, -3));
         lightPos.push_back(point3(4, 3.5, -3));
-        lightPos.push_back(point3(4, -3, 3.5));    
+        lightPos.push_back(point3(4, -3, 3.5));
         */
-        
-        lightDir.push_back(point3(10,-2,-3));
-        //lightDir.push_back(point3(1.0f, sqrt(3.0), -sqrt(3.0))); // 조명의 첫 위치
+
+        lightDir.push_back(point3(2, -1, 1));
+        //lightDir.push_back(point3(1, -2, -2));
+        //lightDir.push_back(point3(1, 4, -2));
         point3 pushTemp;
-        glm::vec4 temp(1.0f, sqrt(3.0), -sqrt(3.0), 1);
-        /*
-        for (int j = 0; j < 10; ++j) // 처음에 한 번 넣어줬으므로 10번 회전이 더 필요
+        glm::vec4 temp(lightDir[0].x, lightDir[0].y, lightDir[0].z, 1);
+
+        for (int j = 0; j < 3; ++j) // 30도 회전 3번
         {
             temp = rotate30Matrix * temp;
             pushTemp = point3(temp.x, temp.y, temp.z);
             lightDir.push_back(pushTemp);
         }
-        */
 
+        temp = glm::vec4(lightDir[0].x, lightDir[0].y, lightDir[0].z, 1);
+
+        for (int j = 0; j < 3; ++j) // -30도 회전 3번
+        {
+            temp = rotateCounter30Matrix * temp;
+            pushTemp = point3(temp.x, temp.y, temp.z);
+            lightDir.push_back(pushTemp);
+        }
 
         //lightDir = normalize(-lightDir); // shader에서 했음 일단
         glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
@@ -272,7 +267,7 @@ void init(int argc, char ** argv)
                 temp_output_homo[j] += transformedMatrix[1].z * temp_homo.y;
                 temp_output_homo[j] += transformedMatrix[2].z * temp_homo.z;
                 temp_output_homo[j] += transformedMatrix[3].z * temp_homo.w;
-            }          
+            }
         }
 
         point3 output_homo = point3(temp_output_homo[0], temp_output_homo[1], temp_output_homo[2]);
@@ -280,7 +275,7 @@ void init(int argc, char ** argv)
     }
 
 
-   
+
     glGenBuffers(1, &VertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
     glBufferData(GL_ARRAY_BUFFER, (transformed_vertices.size() * sizeof(point3)), &transformed_vertices[0], GL_STATIC_DRAW);
@@ -305,7 +300,7 @@ void init(int argc, char ** argv)
         // specular
         glGenBuffers(1, &specularColorBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
-        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &specularColors[0], GL_STATIC_DRAW);       
+        glBufferData(GL_ARRAY_BUFFER, (tripleFace * sizeof(point3)), &specularColors[0], GL_STATIC_DRAW);
     }
 
     else if (RENDERMODE == 'I' || RENDERMODE == 'i' || RENDERMODE == 'T' || RENDERMODE == 't')
@@ -345,7 +340,7 @@ void init(int argc, char ** argv)
 
     glGenBuffers(1, &NormalBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, NormalBufferID);
-    glBufferData(GL_ARRAY_BUFFER, (out_normals.size() * sizeof(point3)), &out_normals[0], GL_STATIC_DRAW);   
+    glBufferData(GL_ARRAY_BUFFER, (out_normals.size() * sizeof(point3)), &out_normals[0], GL_STATIC_DRAW);
 
     //programID = LoadShaders("Normal.vertexshader", "Normal.fragmentshader");
     glUseProgram(programID);
@@ -373,8 +368,8 @@ void myreshape(int w, int h)
         (float)w / (float)h, 0.1f, 100.0f);
 
     View = glm::lookAt(
-        eyeVector,
-        originVector,
+        eyePosition,
+        originPosition,
         //glm::vec3(3, 4, 3), // Camera is at (3,4,3), in World Space
         //glm::vec3(0, 0, 0), // and looks at the origin
         glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
@@ -389,7 +384,7 @@ void myreshape(int w, int h)
     glm::mat4 mvp = Projection * View * Model;
 
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);   
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
     */
 
 
@@ -522,7 +517,7 @@ void mydisplay() {
             (void*)0                          // array buffer offset
         );
 
-    }  
+    }
 
 
     else if (RENDERMODE == 'I' || RENDERMODE == 'i' || RENDERMODE == 'T' || RENDERMODE == 't')
@@ -552,7 +547,7 @@ void mydisplay() {
         glEnableVertexAttribArray(4);
         glBindBuffer(GL_ARRAY_BUFFER, specularColorBufferID);
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    
+
     }
 
     // RENDERMODE == N
@@ -574,7 +569,7 @@ void mydisplay() {
         );
     }
 
-    glDrawArrays(GL_TRIANGLES, 0, (3*face_num));
+    glDrawArrays(GL_TRIANGLES, 0, (3 * face_num));
 
     // Starting from vertex 0; 3 vertices -> 1 triangle
     glDisableVertexAttribArray(0);
@@ -613,7 +608,7 @@ double getDist(point3 p1, point3 p2)
     return sqrt(xDist + yDist + zDist);
 }
 
-double boundingBox(point3 & boxCent)
+double boundingBox(point3& boxCent)
 {
     float maxCoordX = std::numeric_limits<float>::min();
     float maxCoordY = std::numeric_limits<float>::min();
@@ -676,9 +671,9 @@ double boundingBox(point3 & boxCent)
 // 화면 캡쳐해 bmp로 이미지 저장
 void saveScreen(int W, int H, int idx)
 {
-    char * pixel_data;
+    char* pixel_data;
     static int fileNo = 1;
-    pixel_data = (char * )malloc(sizeof(char) * W * H * 3) ;
+    pixel_data = (char*)malloc(sizeof(char) * W * H * 3);
 
     BITMAPFILEHEADER bf; // 비트맵 파일 헤더
     BITMAPINFOHEADER bi; // 비트맵 정보 헤더
@@ -769,7 +764,7 @@ void openglToPngSave(int outputIdx)
         sprintf(filename, "%c_output_%d.png", RENDERMODE, outputIdx);
         imwrite(filename, outputImage);
     }
-        
+
 
     else
     {
