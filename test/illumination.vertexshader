@@ -43,7 +43,6 @@ void main(){
 
 	// Vector that goes from the vertex to the light, in camera space. M is ommited because it's identity.
 	vec4 LightPosition_cameraspace = V * vec4(LightPosition_worldspace, 1.0); // 회전하지 않는 조명
-	// vec4 LightPosition_cameraspace = V * M * vec4(LightPosition_worldspace, 1.0); // 회전하는 조명
 	LightDirection_cameraspace = LightPosition_cameraspace;
 	// LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
 	

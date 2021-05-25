@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_RENDERMODEWARNINGS
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "common.h"
@@ -26,11 +26,8 @@ glm::mat4 mvp;
 glm::mat4 rotate30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0, 1.0f, 0));
 glm::mat4 rotateCounter30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(-30.0f), glm::vec3(0, 1.0f, 0)); // 첫 싱크 맞춰주기용
 
-glm::vec3 eyePosition = glm::vec3(0, 5, 5);
+glm::vec3 eyePosition = glm::vec3(0, 1, 1);
 glm::vec3 originPosition = glm::vec3(0, 0, 0);
-glm::vec3 temp = normalize(originPosition - eyePosition);
-glm::vec4 viewDirection = rotateCounter30Matrix * glm::vec4(temp.x, temp.y, temp.z, 1);
-//glm::vec4 viewDirection = glm::vec4(temp.x, temp.y, temp.z, 1);
 
 float angle;
 int face_num;
@@ -38,7 +35,7 @@ int outputIdx = -1; // outputfile 저장 인덱스 (첫 화면은 렌더링 X이므로 한 번 sk
 int screenSize = 256;
 char RENDERMODE; // 나중에는 N이나 A를 인자로 받아서 자동으로 출력되도록 구현하자
 int lightIdx = 0; // 조명 번호
-float scalingFactor = 2.5f;
+float scalingFactor = 0.63f;
 
 point3 boundingCent; // 만약 잘 안되면 double로 바꿔볼 것
 double boundMaxDist;
@@ -71,12 +68,6 @@ void timer(int value) {
     glutTimerFunc(30, timer, 0);
     angle += glm::radians(30.0f);
 
-    //viewDirection = rotate30Matrix * viewDirection;
-
-    // y축에 대해 0~90도, 270~360도 검출을 위해 y성분 0으로 만든 뒤 내적
-    //tempView.y = 0;
-    //tempLight.y = 0;
-
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
         glUniform3f(LightID, lightDir[lightIdx].x, lightDir[lightIdx].y, lightDir[lightIdx].z);
 
@@ -85,21 +76,6 @@ void timer(int value) {
 
     if (outputIdx != 0 && outputIdx <= 12)
     {
-        if (RENDERMODE == 'I' || RENDERMODE == 'i')
-        {
-            glm::vec3 tempView = normalize(glm::vec3(viewDirection.x, 0, viewDirection.z));
-
-            glm::vec3 tempLight = normalize(glm::vec3(lightDir[lightIdx].x, 0, lightDir[lightIdx].z));
-
-            float dotVal = dot(tempView, tempLight);
-            std::cout << "idx : " << outputIdx - 1 << " dotVal : " << dotVal << '\n';
-
-            //openglToPngSave(outputIdx - 1);
-            if(dotVal <= 0)
-                openglToPngSave(outputIdx - 1);
-        }
-
-        else
             openglToPngSave(outputIdx - 1);
     }
 
@@ -130,7 +106,6 @@ void transform() {
     // Model matrix : an identity matrix (model will be at the origin)
     Model = glm::mat4(1.0f);
     Model = glm::rotate(Model, angle, glm::vec3(0, 1, 0));
-    viewDirection = rotate30Matrix * viewDirection;
 
     // ModelViewProjection
     mvp = Projection * View * Model;
@@ -191,9 +166,9 @@ void init(int argc, char** argv)
         lightPos.push_back(point3(4, -3, 3.5));
         */
 
-        lightDir.push_back(point3(2, -1, 1));
-        //lightDir.push_back(point3(1, -2, -2));
-        //lightDir.push_back(point3(1, 4, -2));
+        //lightDir.push_back(point3(0, 2, 1));
+        //lightDir.push_back(point3(0.6f, -0.74f, 0.3f));
+        lightDir.push_back(point3(3, -3.7f, 1.5f));
         point3 pushTemp;
         glm::vec4 temp(lightDir[0].x, lightDir[0].y, lightDir[0].z, 1);
 
