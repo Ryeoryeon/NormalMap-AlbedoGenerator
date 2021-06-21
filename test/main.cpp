@@ -31,7 +31,7 @@ glm::vec3 originPosition = glm::vec3(0, 0, 0);
 
 float angle;
 int face_num;
-int outputIdx = -1; // outputfile 저장 인덱스 (첫 화면은 렌더링 X이므로 한 번 skip되도록)
+bool firstLight = true; // 첫번째 조명 렌더링의 경우 첫 렌더링 저장과 연관되어 이미지 저장의 개수가 잘못되는 문제 발생
 int screenSize = 256;
 char RENDERMODE; // 나중에는 N이나 A를 인자로 받아서 자동으로 출력되도록 구현하자
 int lightIdx = 0; // 조명 번호
@@ -61,37 +61,42 @@ std::vector<point3> lightDir;
 std::vector<point4> boundingBoxCoordinate;
 //glm::vec3 lightDir(1.0f, sqrt(3.0), -sqrt(3.0));
 
-void timer(int value) {
+void timer(int value)
+{
     static int cnt = -1;
+    static int outputIdx = -1;
     //angle += glm::radians(30.0f);
+
     glutPostRedisplay(); // 윈도우를 다시 그리도록 요청하는 함수
     glutTimerFunc(30, timer, 0);
     angle += glm::radians(30.0f);
 
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
-        glUniform3f(LightID, lightDir[lightIdx].x, lightDir[lightIdx].y, lightDir[lightIdx].z);
+    {
+        if (lightIdx != lightDir.size())
+            glUniform3f(LightID, lightDir[lightIdx].x, lightDir[lightIdx].y, lightDir[lightIdx].z);
+    }
 
     ++outputIdx;
     ++cnt;
 
     if (outputIdx != 0 && outputIdx <= 12)
     {
-            openglToPngSave(outputIdx - 1);
+        openglToPngSave(outputIdx - 1);
     }
 
 
     // 여러 개의 light를 사용할 때
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
-        // 360도 회전이 끝나면 다음 조명으로 변경
-        if (cnt != 0 && cnt % 12 == 0)
+        if (cnt == 12 * lightDir.size())
+            exit(0);
+
+        // 360도 회전이 끝나면 다음 조명으로 변경 (0~11, 12~23..)
+        else if (cnt % 12 == 11)
         {
             ++lightIdx;
             outputIdx = 0;
-
-            // 조명 다 바꾸면 종료
-            if (cnt == 12 * lightDir.size())
-                exit(0);
         }
     }
 
@@ -102,7 +107,8 @@ void timer(int value) {
     }
 }
 
-void transform() {
+void transform() 
+{
     // Model matrix : an identity matrix (model will be at the origin)
     Model = glm::mat4(1.0f);
     Model = glm::rotate(Model, angle, glm::vec3(0, 1, 0));
@@ -167,8 +173,9 @@ void init(int argc, char** argv)
         */
 
         //lightDir.push_back(point3(0, 2, 1));
+        lightDir.push_back(point3(0, 2, 1));
         //lightDir.push_back(point3(0.6f, -0.74f, 0.3f));
-        lightDir.push_back(point3(3, -3.7f, 1.5f));
+        //lightDir.push_back(point3(3, -3.7f, 1.5f));
         point3 pushTemp;
         glm::vec4 temp(lightDir[0].x, lightDir[0].y, lightDir[0].z, 1);
 
