@@ -31,7 +31,7 @@ void main(){
 	vec3 MaterialSpecularColor = specularColor;
 
 	// Ambient color가 0으로 되어있는 경우를 위해 다시 곱해주기
-	vec3 ModifiedAmbient = clamp(ambientColor, 0.85, 1.0) * MaterialDiffuseColor;
+	vec3 ModifiedAmbient = clamp(ambientColor, 0.8, 1.0) * MaterialDiffuseColor;
 
 	vec3 n = normalize(Normal);
 	vec3 l = normalize(LightDirection_cameraspace.xyz);
