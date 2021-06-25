@@ -26,15 +26,19 @@ glm::mat4 View;
 glm::mat4 Model;
 glm::mat4 mvp;
 glm::mat4 rotate30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0, 1.0f, 0));
+glm::mat4 rotateCounter30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(-30.0f), glm::vec3(0, 1.0f, 0));
+
+glm::vec3 eyePosition = glm::vec3(0, 1, 1);
+glm::vec3 originPosition = glm::vec3(0, 0, 0);
 
 float angle;
 int face_num;
-int outputIdx = 0; // outputfile 저장 인덱스
 int screenSize = 256;
 char RENDERMODE;
+
 point3 boundingCent; // 만약 잘 안되면 double로 바꿔볼 것
 double boundMaxDist;
-float scalingFactor = 2.5f;
+float scalingFactor = 0.63f;
 
 void openglToPngSave(int outputIdx);
 void saveScreen(int W, int H, int idx);
@@ -53,47 +57,40 @@ std::vector<point4> diffuseColors;
 std::vector<point3> lightDir;
 std::vector<point4> boundingBoxCoordinate;
 
-/*
-std::vector< glm::vec3 > out_vertices;
-std::vector< glm::vec2 > out_uvs;
-std::vector< glm::vec3 > out_normals;
-*/
-
 int lightIdx = 0; // 조명 번호
 //std::vector<point3> lightPos;
 
 void timer(int value) {
-    static int cnt = 0;
-    angle += glm::radians(30.0f);
+    static int cnt = -1;
+    static int outputIdx = -1;
 
     glutPostRedisplay();
     glutTimerFunc(30, timer, 0);
+    angle += glm::radians(30.0f);
 
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
-        glUniform3f(LightID, lightDir[lightIdx].x, lightDir[lightIdx].y, lightDir[lightIdx].z);
-        //glUniform3f(LightID, lightPos[lightIdx].x, lightPos[lightIdx].y, lightPos[lightIdx].z);
-
-    if (outputIdx != 0 && outputIdx < 12)
     {
-        openglToPngSave(outputIdx - 1);
-        //saveScreen(screenSize, screenSize, outputIdx);
+        if (lightIdx != lightDir.size())
+            glUniform3f(LightID, lightDir[lightIdx].x, lightDir[lightIdx].y, lightDir[lightIdx].z);
     }
 
     ++outputIdx;
     ++cnt;
 
+    if (outputIdx != 0 && outputIdx <= 12)
+        openglToPngSave(outputIdx - 1);
+
     // 여러 개의 light를 사용할 때
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
-        // 360도 회전이 끝나면 다음 조명으로 변경
-        if (cnt % 12 == 0)
+        if (cnt == 12 * lightDir.size())
+            exit(0);
+
+        // 360도 회전이 끝나면 다음 조명으로 변경 (0~11, 12~23..)
+        else if (cnt % 12 == 11)
         {
             ++lightIdx;
             outputIdx = 0;
-
-            // 조명 다 바꾸면 종료
-            if (cnt == 12 * lightDir.size())
-                exit(0);
         }
     }
 
@@ -120,9 +117,9 @@ void transform() {
     GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &View[0][0]);
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);
+    //
 
     LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
-    //glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 }
 
 void init(int argc, char ** argv)
@@ -163,16 +160,25 @@ void init(int argc, char ** argv)
         programID = LoadShaders("illumination.vertexshader", "illumination.fragmentshader");
         glClearColor(1.0f, 0.0f, 1.0f, 0.0f);
 
-        lightDir.push_back(point3(1.0f, sqrt(3.0), -sqrt(3.0))); // 조명의 첫 위치
+        lightDir.push_back(point3(0, 2, 1)); // 조명의 첫 위치
         point3 pushTemp;
-        glm::vec4 temp(1.0f, sqrt(3.0), -sqrt(3.0), 1);
-        for (int j = 0; j < 10; ++j) // 처음에 한 번 넣어줬으므로 10번 회전이 더 필요
+        glm::vec4 temp(lightDir[0].x, lightDir[0].y, lightDir[0].z, 1);
+
+        for (int j = 0; j < 3; ++j) // 30도 회전 3번
         {
             temp = rotate30Matrix * temp;
             pushTemp = point3(temp.x, temp.y, temp.z);
             lightDir.push_back(pushTemp);
         }
 
+        temp = glm::vec4(lightDir[0].x, lightDir[0].y, lightDir[0].z, 1);
+
+        for (int j = 0; j < 3; ++j) // -30도 회전 3번
+        {
+            temp = rotateCounter30Matrix * temp;
+            pushTemp = point3(temp.x, temp.y, temp.z);
+            lightDir.push_back(pushTemp);
+        }
     }
 
     else if (RENDERMODE == 'T' || RENDERMODE == 't')
@@ -326,10 +332,8 @@ void myreshape(int w, int h)
         (float)w / (float)h, 0.1f, 100.0f);
 
     View = glm::lookAt(
-        glm::vec3(3, 4, 3), // Camera is at (3,4,3), in World Space
-        //glm::vec3(0, 1, -1), // 접시 최적 좌표
-        // glm::vec3(tempX, tempY, tempZ),
-        glm::vec3(0, 0, 0), // and looks at the origin
+        eyePosition,
+        originPosition,
         glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
     );
 
@@ -545,7 +549,7 @@ int main(int argc, char** argv)
     glutInit(&ac, tmp);
     glutInitWindowSize(screenSize, screenSize);
     glutInitWindowPosition(0, 800);
-    glutCreateWindow("HELPME");
+    glutCreateWindow("Albedo, Nomral, Illumianation Loader");
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
     glutTimerFunc(0, timer, 0);
     glutDisplayFunc(mydisplay);

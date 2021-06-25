@@ -24,7 +24,6 @@ uniform vec3 LightPosition_worldspace;
 void main(){
 	vec3 LightColor = vec3(1,1,1);
 	float LightPower = 3.0f;
-	//float LightPower = 70.0f;
 
 	// Material properties
 	vec3 MaterialDiffuseColor = vec3(diffuseColor);
@@ -32,7 +31,7 @@ void main(){
 	vec3 MaterialSpecularColor = specularColor;
 
 	// Ambient color가 0으로 되어있는 경우를 위해 다시 곱해주기
-	vec3 ModifiedAmbient = clamp(ambientColor, 0.65, 1.0) * MaterialDiffuseColor;
+	vec3 ModifiedAmbient = clamp(ambientColor, 0.85, 1.0) * MaterialDiffuseColor;
 
 	vec3 n = normalize(Normal);
 	vec3 l = normalize(LightDirection_cameraspace.xyz);
@@ -50,8 +49,8 @@ void main(){
 
 	//vec3 tempColor = ModifiedAmbient + ModifiedDiffuse * LightColor * LightPower * cosTheta / (distance*distance) + ModifiedSpecular * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
 
-	vec3 lightDir = normalize(-LightDirection_cameraspace.xyz);
-	float directionalIntensity = clamp(dot(n, lightDir), 0.0, 1.0);
+	vec3 lightDir = normalize(LightDirection_cameraspace.xyz);
+	float directionalIntensity = clamp(dot(n, lightDir), 0, 1.0);
 
 	vec4 tempColor = vec4(ModifiedAmbient + ModifiedDiffuse * directionalIntensity + ModifiedSpecular, 1);
 
