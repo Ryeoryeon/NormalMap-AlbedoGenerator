@@ -23,6 +23,7 @@ glm::mat4 Projection;
 glm::mat4 View;
 glm::mat4 Model;
 glm::mat4 mvp;
+glm::mat4 transformedMatrix;
 glm::mat4 rotate30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0, 1.0f, 0));
 glm::mat4 rotateCounter30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(-30.0f), glm::vec3(0, 1.0f, 0)); // 첫 싱크 맞춰주기용
 
@@ -31,7 +32,6 @@ glm::vec3 originPosition = glm::vec3(0, 0, 0);
 
 float angle;
 int face_num;
-bool firstLight = true; // 첫번째 조명 렌더링의 경우 첫 렌더링 저장과 연관되어 이미지 저장의 개수가 잘못되는 문제 발생
 int screenSize = 256;
 char RENDERMODE; // 나중에는 N이나 A를 인자로 받아서 자동으로 출력되도록 구현하자
 int lightIdx = 0; // 조명 번호
@@ -85,7 +85,6 @@ void timer(int value)
         openglToPngSave(outputIdx - 1);
     }
 
-
     // 여러 개의 light를 사용할 때
     if (RENDERMODE == 'I' || RENDERMODE == 'i')
     {
@@ -124,6 +123,10 @@ void transform()
     GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &View[0][0]);
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);
+
+    // 변환 행렬
+    GLuint TransformedMatrixID = glGetUniformLocation(programID, "Transform");
+    glUniformMatrix4fv(TransformedMatrixID, 1, GL_FALSE, &transformedMatrix[0][0]);
     //
 
     LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
@@ -172,10 +175,7 @@ void init(int argc, char** argv)
         lightPos.push_back(point3(4, -3, 3.5));
         */
 
-        //lightDir.push_back(point3(0, 2, 1));
         lightDir.push_back(point3(0, 2, 1));
-        //lightDir.push_back(point3(0.6f, -0.74f, 0.3f));
-        //lightDir.push_back(point3(3, -3.7f, 1.5f));
         point3 pushTemp;
         glm::vec4 temp(lightDir[0].x, lightDir[0].y, lightDir[0].z, 1);
 
@@ -214,9 +214,9 @@ void init(int argc, char** argv)
     float scalingSize = scalingFactor / boundMaxDist;
     glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scalingSize, scalingSize, scalingSize));
     glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
-    glm::mat4 transformedMatrix = translateMatrix * scalingMatrix;
+    transformedMatrix = scalingMatrix * translateMatrix;
 
-    // homogeneous coordinate
+    /*
     std::vector<point3> transformed_vertices;
     for (int i = 0; i < out_vertices.size(); ++i)
     {
@@ -255,13 +255,14 @@ void init(int argc, char** argv)
         point3 output_homo = point3(temp_output_homo[0], temp_output_homo[1], temp_output_homo[2]);
         transformed_vertices.push_back(output_homo);
     }
-
+    */
+    // homogeneous coordinate
 
 
     glGenBuffers(1, &VertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, (transformed_vertices.size() * sizeof(point3)), &transformed_vertices[0], GL_STATIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, (out_vertices.size() * sizeof(point3)), &out_vertices[0], GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, (transformed_vertices.size() * sizeof(point3)), &transformed_vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, (out_vertices.size() * sizeof(point3)), &out_vertices[0], GL_STATIC_DRAW);
 
     int tripleFace = 3 * face_num;
     //std::vector<point3> colors;
@@ -369,7 +370,6 @@ void myreshape(int w, int h)
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
     */
 
-
     transform();
 }
 
@@ -473,7 +473,6 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 
 
 void mydisplay() {
-
     transform();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

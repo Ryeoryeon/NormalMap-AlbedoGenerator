@@ -22,6 +22,7 @@ out vec3 Normal;
 uniform mat4 MVP;
 uniform mat4 V;
 uniform mat4 M;
+uniform mat4 Transform;
 uniform vec3 LightPosition_worldspace;
 
 void main(){
@@ -31,7 +32,7 @@ void main(){
 	//specularColor = vertexColor_specular;
 
 	// Output position of the vertex, in clip space : MVP * position
-	gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
+	gl_Position =  MVP * Transform * vec4(vertexPosition_modelspace,1);
 	
 	// Position of the vertex, in worldspace : M * position
 	Position_worldspace = (M * vec4(vertexPosition_modelspace,1)).xyz;

@@ -25,6 +25,8 @@ glm::mat4 Projection;
 glm::mat4 View;
 glm::mat4 Model;
 glm::mat4 mvp;
+glm::mat4 transformedMatrix;
+
 glm::mat4 rotate30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0, 1.0f, 0));
 glm::mat4 rotateCounter30Matrix = glm::rotate(glm::mat4(1.0f), glm::radians(-30.0f), glm::vec3(0, 1.0f, 0));
 
@@ -117,6 +119,10 @@ void transform() {
     GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &View[0][0]);
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);
+
+    // 변환 행렬
+    GLuint TransformedMatrixID = glGetUniformLocation(programID, "Transform");
+    glUniformMatrix4fv(TransformedMatrixID, 1, GL_FALSE, &transformedMatrix[0][0]);
     //
 
     LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
@@ -196,54 +202,14 @@ void init(int argc, char ** argv)
     float scalingSize = scalingFactor / boundMaxDist;
     glm::mat4 scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scalingSize, scalingSize, scalingSize));
     glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-boundingCent.x, -boundingCent.y, -boundingCent.z));
-    glm::mat4 transformedMatrix = translateMatrix * scalingMatrix;
+    transformedMatrix = scalingMatrix * translateMatrix;
 
-    // homogeneous coordinate
-    std::vector<point3> transformed_vertices;
-    for (int i = 0; i < out_vertices.size(); ++i)
-    {
-        point4 temp_homo = point4(out_vertices[i].x, out_vertices[i].y, out_vertices[i].z); // (x,y.z.1 변환)
-        float temp_output_homo[4] = { 0, };
+    // 행렬과 좌표 곱 계산은 GPU에서
 
-        for (int j = 0; j < 3; ++j)
-        {
-            // 주의!
-            // glm::mat4형을 디버그해보면 [0]~[3]은 열에 해당하는 정보를 담고 있었다. (x,y,z,w는 행에 해당하는 정보)
-            if (j == 0)
-            {
-                temp_output_homo[j] += transformedMatrix[0].x * temp_homo.x;
-                temp_output_homo[j] += transformedMatrix[1].x * temp_homo.y;
-                temp_output_homo[j] += transformedMatrix[2].x * temp_homo.z;
-                temp_output_homo[j] += transformedMatrix[3].x * temp_homo.w;
-            }
-
-            else if (j == 1)
-            {
-                temp_output_homo[j] += transformedMatrix[0].y * temp_homo.x;
-                temp_output_homo[j] += transformedMatrix[1].y * temp_homo.y;
-                temp_output_homo[j] += transformedMatrix[2].y * temp_homo.z;
-                temp_output_homo[j] += transformedMatrix[3].y * temp_homo.w;
-            }
-
-            else  // j == 2
-            {
-                temp_output_homo[j] += transformedMatrix[0].z * temp_homo.x;
-                temp_output_homo[j] += transformedMatrix[1].z * temp_homo.y;
-                temp_output_homo[j] += transformedMatrix[2].z * temp_homo.z;
-                temp_output_homo[j] += transformedMatrix[3].z * temp_homo.w;
-            }          
-        }
-
-        point3 output_homo = point3(temp_output_homo[0], temp_output_homo[1], temp_output_homo[2]);
-        transformed_vertices.push_back(output_homo);
-    }
-
-
-   
     glGenBuffers(1, &VertexBufferID);
     glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, (transformed_vertices.size() * sizeof(point3)), &transformed_vertices[0], GL_STATIC_DRAW);
-    //glBufferData(GL_ARRAY_BUFFER, (out_vertices.size() * sizeof(point3)), &out_vertices[0], GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, (transformed_vertices.size() * sizeof(point3)), &transformed_vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, (out_vertices.size() * sizeof(point3)), &out_vertices[0], GL_STATIC_DRAW);
 
     int tripleFace = 3 * face_num;
     //std::vector<point3> colors;
